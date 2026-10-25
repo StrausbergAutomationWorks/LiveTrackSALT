@@ -13,6 +13,7 @@ tracker = load("tracker")
 icons = load("icons")
 from saw_livetrack import enforcement_list as el  # noqa: E402
 from saw_livetrack.adsb_poll import Observation  # noqa: E402
+from saw_livetrack import faa_registry as fr  # noqa: E402
 
 CENTRE = (39.817, -84.050)
 
@@ -31,7 +32,23 @@ LIST = reader([
     {"hex": "abc123", "status": "detected_unconfirmed"},
     {"hex": "abc124", "status": "detected_unconfirmed"},
     {"hex": "def456", "status": "cleared", "agency": "HOMELAND AVIATION LLC"},
+    {"hex": "a0f500", "status": "sourced", "agency": "FSG", "entry": "us-fl-state-guard"},
 ])
+
+
+def registry(rows):
+    r = fr.FaaRegistry("unused")
+    r.gov._table, r.gov._loaded = rows, True
+    return r
+
+
+# The FAA registry's rows (owner names as the FAA writes them; measured 2026-10-25: the list's 287 agree with it
+# but for Florida State Guard's 12 and one FHP aircraft, whose owner is a plain state government).
+REG = registry({"A00808": ["N1007G", "DEPARTMENT OF HOMELAND SECURITY", "DC"],
+                "A1B2C3": ["N7DP", "TEXAS DEPARTMENT OF PUBLIC SAFETY", "TX"],
+                "A0F500": ["N5FG", "STATE OF FLORIDA", "FL"],
+                "ABC123": ["N9PD", "CITY OF EXAMPLE POLICE DEPT", "IL"],
+                "A0EEEE": ["N808ZT", "DEPARTMENT OF HOMELAND SECURITY", "DC"]})
 
 
 def obs(h, lat=39.822, lon=-84.045, t=1_800_000_000, **kw):
@@ -44,8 +61,8 @@ def obs(h, lat=39.822, lon=-84.045, t=1_800_000_000, **kw):
 FAR = dict(lat=29.4, lon=-98.5)     # San Antonio, well outside a 56 km focus area
 
 
-def build(circle, listed, skip=frozenset(), cap=250, t=None):
-    t = t or tracker.Tracker(CENTRE[0], CENTRE[1], 56.0)
+def build(circle, listed, skip=frozenset(), cap=250, t=None, reg=REG):
+    t = t or tracker.Tracker(CENTRE[0], CENTRE[1], 56.0, reg)
     return t, t.build(circle, listed, LIST, skip, cap)
 
 
@@ -64,6 +81,34 @@ class TestWhatIsDrawn(unittest.TestCase):
         self.assertIn("t=police", dps["entity_picture"])
         self.assertEqual(dhs["enforcement_status"], "sourced")
         self.assertEqual(dhs["list_registration"], "N1007G")
+        self.assertEqual((dhs["operator_short"], dps["operator_short"]), ("DHS", "TX DPS"))
+        self.assertEqual(dhs["identified_by"], "faa_government")
+
+    def test_the_fill_is_the_owners_and_the_list_adds_the_glow(self):
+        # Lee 2026-10-25: fill normally, the red/blue glow added when listed. The FAA names Florida State
+        # Guard's owner a plain state government: orange, lit, its agency from the list.
+        _, out = build([], [obs("a0f500", **FAR)])
+        r = out["a0f500"]
+        self.assertEqual(r["operator_category"], "Government")
+        self.assertIn("t=gov", r["entity_picture"])
+        self.assertIn("l=g", r["entity_picture"])
+        self.assertEqual((r["operator_short"], r["marker_label"]), ("FSG", "FSG"))
+
+    def test_without_a_registry_row_the_fill_is_ordinary_and_still_lit(self):
+        _, out = build([], [obs("a00808", **FAR)], reg=None)
+        r = out["a00808"]
+        self.assertNotIn("operator_category", r)
+        self.assertNotIn("t=law", r["entity_picture"])
+        self.assertIn("l=g", r["entity_picture"])
+        self.assertEqual((r["operator_short"], r["marker_label"]), ("DHS", "DHS"))
+
+    def test_a_detection_is_ringed_over_its_owners_fill(self):
+        _, out = build([], [obs("abc123", **FAR)])
+        r = out["abc123"]
+        self.assertIn("t=police", r["entity_picture"])
+        self.assertIn("d=1", r["entity_picture"])
+        self.assertNotIn("l=", r["entity_picture"])
+        self.assertEqual(r["marker_label"], tracker.LABEL_DETECTED)
 
     def test_detected_is_ringed_unlit_and_says_so(self):
         _, out = build([], [obs("abc123", **FAR), obs("abc124", db_flags=4, **FAR)])
@@ -123,7 +168,7 @@ FED = {"a0ffff": {"registration": "N809EM", "operator": "Department of Homeland 
 
 class TestFederalRegistrants(unittest.TestCase):
     def test_a_registrant_off_the_list_is_drawn_lit_and_named(self):
-        t = tracker.Tracker(CENTRE[0], CENTRE[1], 56.0)
+        t = tracker.Tracker(CENTRE[0], CENTRE[1], 56.0)   # no registry here: the fields come from FED
         out = t.build([], [obs("a0ffff", **FAR), obs("def456", **FAR)], LIST, federal=FED)
         r = out["a0ffff"]
         self.assertEqual(r["marker_label"], "DHS")
@@ -136,6 +181,45 @@ class TestFederalRegistrants(unittest.TestCase):
     def test_without_the_table_it_is_not_drawn_outside(self):
         _, out = build([], [obs("a0ffff", **FAR)])
         self.assertNotIn("a0ffff", out)
+
+    def test_a_registrant_from_this_registry_is_lit_and_named(self):
+        # the coordinator passes this registry's federal hexes with no fields ({}); the row names it
+        t = tracker.Tracker(CENTRE[0], CENTRE[1], 56.0, REG)
+        out = t.build([], [obs("a0eeee", **FAR)], LIST, federal={"a0eeee": {}})
+        r = out["a0eeee"]
+        self.assertEqual((r["operator_short"], r["marker_label"]), ("DHS", "DHS"))
+        self.assertIn("t=law", r["entity_picture"])
+        self.assertIn("l=g", r["entity_picture"])
+        self.assertEqual(r["list_registration"], "N808ZT")
+
+    def test_the_registrys_short_name_before_the_lists(self):
+        lst = reader([{"hex": "a0f501", "status": "sourced", "agency": "FHP", "entry": "us-fl-fhp"}])
+        t = tracker.Tracker(CENTRE[0], CENTRE[1], 56.0, registry({"A0F501": ["N6HP", "FLORIDA HIGHWAY PATROL", "FL"]}))
+        r = t.build([], [obs("a0f501", **FAR)], lst)["a0f501"]
+        self.assertEqual(r["operator_short"], "FL Hwy Patrol")
+        self.assertEqual(r["marker_label"], "FHP")              # the marker keeps the list's agency
+
+    def test_a_federal_registrant_inside_glows_by_owner_class(self):
+        # inside the focus area, not on the list, nothing published: the owner rules light it, as Live Track Aircraft
+        _, out = build([obs("a0eeee")], [])
+        pic = out["a0eeee"]["entity_picture"]
+        self.assertIn("t=law", pic)
+        self.assertIn("l=g", pic)
+
+    def test_a_military_federal_owner_from_the_feed_alone(self):
+        # no registry row, nothing published: the feed's flags and owner text decide, and nothing raises
+        _, out = build([obs("aaaaab", db_flags=1, own_op="FEDERAL BUREAU OF INVESTIGATION")], [], reg=None)
+        r = out["aaaaab"]
+        self.assertEqual((r["operator_category"], r["operator_short"]), ("Federal law enforcement", "FBI"))
+        self.assertIn("t=mil", r["entity_picture"])
+
+    def test_an_unlisted_police_aircraft_inside_fills_white_unlit(self):
+        _, out = build([obs("abc125", callsign="N9PD")], [], reg=registry({"ABC125": ["N9PD", "CITY OF EXAMPLE POLICE DEPT", "IL"]}))
+        pic = out["abc125"]["entity_picture"]
+        self.assertIn("t=police", pic)
+        self.assertNotIn("l=", pic)
+        self.assertNotIn("d=1", pic)
+        self.assertEqual(out["abc125"]["operator_short"], "Example Police")
 
     def test_the_cap_keeps_a_registrant(self):
         t = tracker.Tracker(CENTRE[0], CENTRE[1], 56.0)
@@ -201,7 +285,17 @@ class TestBoundaries(unittest.TestCase):
         self.assertIn('rec["feed"] = self.circle_source', coord)
         geo = dict(self._code())["geo_location.py"]
         self.assertIn('LOL_ATTRIBUTION if rec.get("feed") == "adsb.lol" else FEED_ATTRIBUTION', geo)
-        self.assertIn('"saw-livetrack>=0.2.14,<0.3"', dict(self._code())["manifest.json"])
+        self.assertIn('"saw-livetrack>=0.2.15,<0.3"', dict(self._code())["manifest.json"])
+
+    def test_the_registry_is_loaded_refreshed_and_passed(self):
+        init = dict(self._code())["__init__.py"]
+        self.assertIn('registry = fr.shared(hass.data, hass.config.path(".storage"))', init)
+        self.assertLess(init.index("await registry.load(hass.async_add_executor_job)"),
+                        init.index("await coordinator.async_config_entry_first_refresh()"))
+        self.assertIn("async_track_time_interval(hass, _check_registry, REGISTRY_TICK)", init)
+        coord = dict(self._code())["coordinator.py"]
+        self.assertIn("self.registry.gov.federal_law_enforcement_hexes()", coord)
+        self.assertIn("Tracker(self.latitude, self.longitude, self.radius_km, registry)", coord)
 
     def test_never_imports_live_track_aircraft(self):
         for name, text in self._code():

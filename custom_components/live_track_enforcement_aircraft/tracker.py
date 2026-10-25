@@ -14,11 +14,14 @@ What is drawn (Enforcement SSOT section 3.1, decisions A, G, K, O):
 fixes per aircraft, never backwards, a stale observation re-publishes what was published, previous_*
 for the card to interpolate across a segment up to MAX_SEGMENT_S, and a slow aircraft's course held.
 
-! OWNER CLASS WITHOUT THE FAA REGISTRY (decision C, open). The list's federal rule entry is
-"Federal law enforcement" (the blue fill), any other listed agency "Law enforcement" (the police
-white); a detection or an unlisted aircraft has only the feed's flags (military green) or none.
-Live Track Aircraft fills from the FAA registry, so 13 of today's 287 differ: Florida State Guard (12)
-and one FLHSMV aircraft are orange there.
+! EVERY AIRCRAFT FILLS BY THE OWNER RULES, as in Live Track Aircraft (backlog 300; Lee 2026-10-25 01:42:
+decision C answered, option 1, and the fill already decided): the FAA registry's owner class from
+saw_livetrack.faa_registry, else the feed's flags (military green), else none; the list adds the glow
+(sourced) or the ring (detected), never the fill. So Florida State Guard's 12 and one FHP aircraft fill
+orange (the FAA names a plain government owner) with the glow. With no registry row an aircraft fills
+as an ordinary one.
+! operator_short, for the hover's first line (06_MAP_CONTRACT.md D4b rule 12): the registry's agency
+code or force's short name, else the list's agency for a sourced aircraft.
 """
 from __future__ import annotations
 
@@ -28,11 +31,12 @@ from typing import Any
 
 from saw_livetrack import aircraft_icons as lib
 from saw_livetrack import enforcement_list as el
+from saw_livetrack import faa_registry as fr
 from saw_livetrack.adsb_poll import Observation, km_between
 from saw_livetrack.aircraft_icons import airframe
 
 from . import icons
-from .const import FEDERAL_RULE, MAX_SEGMENT_S, SLOW_GROUND_SPEED_KMH
+from .const import MAX_SEGMENT_S, SLOW_GROUND_SPEED_KMH
 
 Fix = tuple[float, float, int]
 
@@ -53,18 +57,13 @@ def _shorten(text: str) -> str:
     return out if len(out) <= MAX_LABEL_CHARS else out[: MAX_LABEL_CHARS - 1].rstrip() + "\u2026"
 
 
-def owner_category(entry: el.Entry | None) -> str | None:
-    """The owner class the fill is drawn in, from the list alone (decision C open; see the docstring)."""
-    if entry is None or entry.status not in (el.SOURCED, el.DETECTED) or entry.entry is None:
-        return None
-    return "Federal law enforcement" if entry.entry == FEDERAL_RULE else "Law enforcement"
-
-
 class Tracker:
     """Holds the fixes; build() turns one poll's observations into {hex: record}."""
 
-    def __init__(self, latitude: float, longitude: float, radius_km: float) -> None:
+    def __init__(self, latitude: float, longitude: float, radius_km: float, registry=None) -> None:
+        """registry: anything with lookup_government(hex) (saw_livetrack.faa_registry.FaaRegistry), or None."""
         self.latitude, self.longitude, self.radius_km = latitude, longitude, radius_km
+        self.registry = registry
         self._fix: dict[str, Fix] = {}
         self._prev_fix: dict[str, Fix] = {}
         self._angle: dict[str, float] = {}
@@ -193,18 +192,32 @@ class Tracker:
             out["icon_rotation_deg"] = angle
             out["icon_rotation_basis"] = basis
 
-        flags = obs.db_flags or 0
-        military = bool(flags & FLAG_MILITARY)
+        # ! The owner rules, as Live Track Aircraft's coordinator: the registry's row, then the feed's flags.
+        gov = self.registry.lookup_government(obs.identity) if self.registry is not None else None
+        military, category, extra = fr.from_feed_flags(obs.db_flags, obs.own_op, gov)
         if military:
             out["is_military"] = True
-        if flags & FLAG_PIA:
+        if extra.get("identity_hidden"):
             out["identity_hidden"] = True
         if obs.own_op:
             out["operator"] = obs.own_op
             out["operator_name_source"] = "feed"
-        category = owner_category(entry)
-        registrant = fed is not None and entry is None
-        if registrant:
+        for name in ("identified_by", "operator_short"):
+            if extra.get(name):
+                out[name] = extra[name]
+        if gov:
+            if gov.get("operator"):
+                out["operator"] = gov["operator"]
+                out["operator_name_source"] = "government"
+            for name in ("operator_state", "operator_short", "identified_by"):
+                if gov.get(name):
+                    out[name] = gov[name]
+            if gov.get("registration") and "registration" not in out:
+                out["list_registration"] = gov["registration"]
+        # A federal law-enforcement registrant not on the list: from this registry, or published by another
+        # integration's (fed) when this one has no row. Lit, as Live Track Aircraft's owner rules light it.
+        registrant = entry is None and (category == "Federal law enforcement" or (fed is not None and gov is None))
+        if registrant and gov is None and fed is not None:
             # ! A FEDERAL REGISTRANT NOT ON THE LIST is drawn as Live Track Aircraft's owner rules draw
             # it: the blue fill, lit (lights_for), named from the FAA registry.
             category = "Federal law enforcement"
@@ -218,6 +231,8 @@ class Tracker:
                 out["list_registration"] = fed["registration"]
         if category:
             out["operator_category"] = category
+        if entry is not None and entry.status == el.SOURCED and entry.agency and not out.get("operator_short"):
+            out["operator_short"] = entry.agency
         detected = entry is not None and entry.status == el.DETECTED
         sourced = (entry is not None and entry.status == el.SOURCED) or registrant
         if entry is not None:
@@ -228,7 +243,7 @@ class Tracker:
                 out["enforcement_entry"] = entry.entry
             if entry.registration and "registration" not in out:
                 out["list_registration"] = entry.registration
-        tone = lib.tone_for(category is not None, icon_category, category, military)
+        tone = lib.tone_for(gov is not None or registrant, icon_category, category, military)
         out["entity_picture"] = icons.picture_url(
             key, tone, lib.weight_for(obs.emitter_category),
             lights=lib.LIGHTS_GLOW if sourced else False, detected=detected)

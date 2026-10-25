@@ -20,6 +20,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from saw_livetrack import adsb_poll as ap
 from saw_livetrack import enforcement_list as el
+from saw_livetrack import faa_registry as fr
 
 from .const import (
     CONF_LATITUDE, CONF_LONGITUDE, CONF_NATIONWIDE, CONF_RADIUS_KM, CONSUMER, DEFAULT_NATIONWIDE,
@@ -32,7 +33,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class EnforcementCoordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, poll: ap.Poll,
-                 reader: el.EnforcementList) -> None:
+                 reader: el.EnforcementList, registry: fr.FaaRegistry | None = None) -> None:
         opts = {**entry.data, **entry.options}
         self.latitude = float(opts.get(CONF_LATITUDE, hass.config.latitude))
         self.longitude = float(opts.get(CONF_LONGITUDE, hass.config.longitude))
@@ -43,7 +44,8 @@ class EnforcementCoordinator(DataUpdateCoordinator):
         self._session = async_get_clientsession(hass)
         self.poll = poll
         self.reader = reader
-        self.tracker = Tracker(self.latitude, self.longitude, self.radius_km)
+        self.registry = registry
+        self.tracker = Tracker(self.latitude, self.longitude, self.radius_km, registry)
         self._circle: list[ap.Observation] = []
         self.circle_source = ap.FI
         self._circle_failures = 0
@@ -53,7 +55,10 @@ class EnforcementCoordinator(DataUpdateCoordinator):
         now = time.time()
         # The list's sourced and detected hexes, and the FAA's federal law-enforcement registrants when an
         # installed integration publishes them (enforcement_list.FEDERAL_KEY; Live Track Aircraft does).
-        federal = self.hass.data.get(el.FEDERAL_KEY) or {}
+        # ! The registrants from the instance's own FAA registry (backlog 300), so this integration keeps the
+        # nationwide scope alone; what Live Track Aircraft publishes is kept for its fields.
+        federal = {h: {} for h in (self.registry.gov.federal_law_enforcement_hexes() if self.registry else ())}
+        federal.update(self.hass.data.get(el.FEDERAL_KEY) or {})
         self.poll.set_hexes(CONSUMER, (self.reader.hexes(el.SOURCED, el.DETECTED) | set(federal))
                             if self.nationwide else None)
         hex_status = await self.poll.hex_round(self._session, now)

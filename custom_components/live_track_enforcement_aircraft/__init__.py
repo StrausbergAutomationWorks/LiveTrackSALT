@@ -14,11 +14,12 @@ from datetime import timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeassistant.helpers.aiohttp_client import async_create_clientsession, async_get_clientsession
 from homeassistant.helpers.event import async_track_time_interval
 
 from saw_livetrack import adsb_poll as ap
 from saw_livetrack import enforcement_list as el
+from saw_livetrack import faa_registry as fr
 
 from .const import CONSUMER, DOMAIN
 from .coordinator import EnforcementCoordinator
@@ -27,6 +28,8 @@ from .web import register as register_views
 PLATFORMS: list[Platform] = [Platform.GEO_LOCATION, Platform.SENSOR]
 # The reader holds a good check for 6 h and a failed one for 15 min; asked every hour.
 LIST_TICK = timedelta(hours=1)
+# The FAA registry's cache is checked daily; it is downloaded when a week old (saw_livetrack.faa_registry).
+REGISTRY_TICK = timedelta(days=1)
 
 
 def _list_session(hass: HomeAssistant):
@@ -45,7 +48,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if first:
         await hass.async_add_executor_job(reader.load_cache)
     poll = ap.shared(hass.data)
-    coordinator = EnforcementCoordinator(hass, entry, poll, reader)
+    # ! THE FAA REGISTRY, ONE PER INSTANCE (saw-livetrack 0.2.15, backlog 300; Lee 2026-10-25: decision C,
+    # option 1): shared with Live Track Aircraft when it is installed, loaded and refreshed here when it is
+    # not. Every aircraft fills by the owner rules; the list adds the glow.
+    registry = fr.shared(hass.data, hass.config.path(".storage"))
+    await registry.load(hass.async_add_executor_job)
+    coordinator = EnforcementCoordinator(hass, entry, poll, reader, registry)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
     async def _check_list(_now=None) -> None:
@@ -53,6 +61,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.async_create_background_task(_check_list(), "live_track_enforcement_aircraft_list")
     entry.async_on_unload(async_track_time_interval(hass, _check_list, LIST_TICK))
+
+    async def _check_registry(_now=None) -> None:
+        await registry.refresh(async_get_clientsession(hass), hass.async_add_executor_job)
+
+    hass.async_create_background_task(_check_registry(), "live_track_enforcement_aircraft_registry")
+    entry.async_on_unload(async_track_time_interval(hass, _check_registry, REGISTRY_TICK))
     await coordinator.async_config_entry_first_refresh()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_reload))
