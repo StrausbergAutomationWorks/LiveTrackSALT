@@ -193,6 +193,16 @@ class TestBoundaries(unittest.TestCase):
             self.assertNotIn("FI_THEN_LOL", code, name)
             self.assertNotIn("api.adsb.lol", code, name)
 
+    def test_the_focus_area_is_asked_as_this_integration_and_credits_its_feed(self):
+        # 0.2.14: a focus area inside another integration's circle costs no request; the feed is credited
+        coord = dict(self._code())["coordinator.py"]
+        self.assertIn("consumer=CONSUMER)", coord)
+        self.assertIn("sources=ap.FI_ONLY", coord)
+        self.assertIn('rec["feed"] = self.circle_source', coord)
+        geo = dict(self._code())["geo_location.py"]
+        self.assertIn('LOL_ATTRIBUTION if rec.get("feed") == "adsb.lol" else FEED_ATTRIBUTION', geo)
+        self.assertIn('"saw-livetrack>=0.2.14,<0.3"', dict(self._code())["manifest.json"])
+
     def test_never_imports_live_track_aircraft(self):
         for name, text in self._code():
             self.assertIsNone(re.search(r"^\s*(from|import)\s+[.\w]*live_track_aircraft\b", text, re.M), name)

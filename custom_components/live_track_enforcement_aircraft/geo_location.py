@@ -16,7 +16,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import ATTRIBUTION, DOMAIN, FEED_ATTRIBUTION
+from .const import DOMAIN, FEED_ATTRIBUTION, LIST_ATTRIBUTION, LOL_ATTRIBUTION
 from .coordinator import EnforcementCoordinator
 
 _PASSTHROUGH = (
@@ -69,8 +69,11 @@ class EnforcementAircraft(GeolocationEvent):
 
     @property
     def attribution(self) -> str:
-        # The list's ODbL notice rides on what the list decided; an ordinary aircraft is adsb.fi's.
-        return ATTRIBUTION if (self._rec() or {}).get("enforcement_status") else FEED_ATTRIBUTION
+        # The feed the position came from (adsb.lol only through another integration's circle, 0.2.14),
+        # and the list's ODbL notice on what the list decided.
+        rec = self._rec() or {}
+        feed = LOL_ATTRIBUTION if rec.get("feed") == "adsb.lol" else FEED_ATTRIBUTION
+        return feed + "; " + LIST_ATTRIBUTION if rec.get("enforcement_status") else feed
 
     @property
     def icon(self) -> str:

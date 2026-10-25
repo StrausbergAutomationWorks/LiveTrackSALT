@@ -45,6 +45,7 @@ class EnforcementCoordinator(DataUpdateCoordinator):
         self.reader = reader
         self.tracker = Tracker(self.latitude, self.longitude, self.radius_km)
         self._circle: list[ap.Observation] = []
+        self.circle_source = ap.FI
         self._circle_failures = 0
         self._last_count: int | None = None
 
@@ -58,9 +59,15 @@ class EnforcementCoordinator(DataUpdateCoordinator):
         hex_status = await self.poll.hex_round(self._session, now)
         circle_status = "ok"
         try:
-            _source, self._circle = await self.poll.circle(
+            # ! A FOCUS AREA INSIDE ANOTHER INTEGRATION'S CIRCLE COSTS NO REQUEST (saw-livetrack 0.2.14,
+            # Lee 2026-10-24 23:58): it is answered from that circle's last answer, whatever feed
+            # answered it; the source is kept so the entities credit the feed the data came from.
+            self.circle_source, self._circle = await self.poll.circle(
                 self._session, self.latitude, self.longitude, self.radius_km, now,
-                sources=ap.FI_ONLY, min_expected=ap.short_floor(self._last_count), user_agent=USER_AGENT)
+                sources=ap.FI_ONLY, min_expected=ap.short_floor(self._last_count), user_agent=USER_AGENT,
+                consumer=CONSUMER)
+            if self.poll.circle_how.get(CONSUMER) == "covered":
+                circle_status = "ok, covered by another integration's circle"
             self._circle_failures = 0
             self._last_count = len(self._circle)
         except ap.SourceError as err:
@@ -74,6 +81,11 @@ class EnforcementCoordinator(DataUpdateCoordinator):
         skip = self.poll.claimed_by_others(CONSUMER)
         aircraft = self.tracker.build(self._circle, listed, self.reader, skip, MAX_AIRCRAFT, federal)
         self.poll.claim(CONSUMER, aircraft.keys())
+        # Which feed each aircraft came from, for its attribution: the focus area's answer may be another
+        # integration's, from adsb.lol; the hex round is always adsb.fi.
+        in_circle = {o.identity for o in self._circle}
+        for hex_id, rec in aircraft.items():
+            rec["feed"] = self.circle_source if hex_id in in_circle and not rec.get("outside_radius") else ap.FI
         return {
             "aircraft": aircraft,
             "listed_shown": sum(1 for r in aircraft.values() if r.get("enforcement_status")),

@@ -8,9 +8,12 @@ from __future__ import annotations
 DOMAIN = "live_track_enforcement_aircraft"
 
 # ! THE TERMS REQUIRE THIS. adsb.fi: "You must cite adsb.fi and include a link to our home page"
-# (05_SHARED_LESSONS.md B16a). The EnforcementAircraft list is ODbL v1.0. No adsb.lol here: this
-# integration never asks it.
+# (05_SHARED_LESSONS.md B16a). The EnforcementAircraft list is ODbL v1.0. This integration never asks
+# adsb.lol itself; but a focus area inside Live Track Aircraft's circle is answered from that circle's
+# answer (saw-livetrack 0.2.14), which may be adsb.lol's, whose data is ODbL 1.0: such an aircraft
+# credits adsb.lol (LOL_ATTRIBUTION).
 FEED_ATTRIBUTION = "Data from adsb.fi (https://adsb.fi)"
+LOL_ATTRIBUTION = "Data from adsb.lol (https://adsb.lol, ODbL 1.0)"
 LIST_ATTRIBUTION = ("Contains information from EnforcementAircraft "
                     "(https://github.com/StrausbergAutomationWorks/EnforcementAircraft), "
                     "which is made available under the Open Database License (ODbL) v1.0")
