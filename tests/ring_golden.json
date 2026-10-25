@@ -1,0 +1,12 @@
+{
+ "art_rev": 11,
+ "digests": {
+  "a7|default|0.78": "d8932f16cf20964a526f60f8a4c9dee5502169706fbebbb8b3b332603f039f53",
+  "b0|default|0.62": "604c7cdc815d5083375b9a6d55df1c0ecf00c9615d5deed57562257a0cf78ec2",
+  "cessna|gov|0.66": "dd4b04e73321149b7ad43f3d57ebb5d94e158501703418a83fea1b7f3cf82195",
+  "kingair350|default|0.80": "60a0c10565ccb7da26c9aa6e9bfb5d896014aa5ef5d394f4cf83421a9bb85672",
+  "pc12|police|0.80": "7b2c8dcdd5ff8bbd7b26d8afa43144ea53c98f4f890b15f8a58217744619cc01",
+  "tiltrotor|mil|0.78": "9f0d0cd168385934229ffe3857756b4c4842993db4a3c3026d785e99ad08f24c"
+ },
+ "made_by": "ltea_ring_golden.py"
+}

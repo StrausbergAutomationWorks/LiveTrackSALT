@@ -1,0 +1,45 @@
+"""Constants for Live Track Enforcement Aircraft.
+
+Identity is PERMANENT: the domain is fixed at first install and no rename recovers it
+(10_SEED/00_START_HERE.md, damage item 2). Reserved by Lee 2026-10-24 01:29.
+"""
+from __future__ import annotations
+
+DOMAIN = "live_track_enforcement_aircraft"
+
+# ! THE TERMS REQUIRE THIS. adsb.fi: "You must cite adsb.fi and include a link to our home page"
+# (05_SHARED_LESSONS.md B16a). The EnforcementAircraft list is ODbL v1.0. No adsb.lol here: this
+# integration never asks it.
+FEED_ATTRIBUTION = "Data from adsb.fi (https://adsb.fi)"
+LIST_ATTRIBUTION = ("Contains information from EnforcementAircraft "
+                    "(https://github.com/StrausbergAutomationWorks/EnforcementAircraft), "
+                    "which is made available under the Open Database License (ODbL) v1.0")
+ATTRIBUTION = FEED_ATTRIBUTION + "; " + LIST_ATTRIBUTION
+USER_AGENT = ("LiveTrackEnforcementAircraft/0.1 "
+              "(+https://github.com/StrausbergAutomationWorks/LiveTrackEnforcementAircraft)")
+
+# The consumer name this integration registers in the shared poll (saw_livetrack.adsb_poll).
+CONSUMER = DOMAIN
+
+# --- configuration keys (the focus area is stored as two numbers, as Live Track Aircraft's centre) ---
+CONF_LATITUDE = "latitude"
+CONF_LONGITUDE = "longitude"
+CONF_RADIUS_KM = "radius_km"
+CONF_NATIONWIDE = "nationwide"
+# ! A DIALOG FIELD, NEVER STORED: centre.py turns it into CONF_LATITUDE and CONF_LONGITUDE.
+CONF_LOCATION = "location"
+
+DEFAULT_RADIUS_KM = 56.0
+MIN_RADIUS_KM = 1.0
+MAX_RADIUS_KM = 463.0           # adsb.fi's own ceiling is 250 nm
+DEFAULT_NATIONWIDE = True
+
+# ! 15 s, Live Track Aircraft's measured floor: at 5 s, 196 of 360 requests returned HTTP 429.
+SCAN_INTERVAL_S = 15
+MAX_TRANSIENT_FAILURES = 3
+MAX_AIRCRAFT = 250              # a guard rail on the focus area, not a display control
+MAX_SEGMENT_S = 300
+SLOW_GROUND_SPEED_KMH = 30.0
+
+# The list's rule entry for every federal law-enforcement registrant (EnforcementAircraft entries).
+FEDERAL_RULE = "us-federal-law-enforcement"
