@@ -21,7 +21,8 @@ from .coordinator import EnforcementCoordinator
 
 _PASSTHROUGH = (
     "map_layer", "identity", "marker_label", "callsign", "aircraft_type", "registration",
-    "list_registration", "operator", "operator_name_source", "operator_category",
+    "list_registration", "operator", "operator_short", "operator_name_source", "operator_category",
+    "identified_by",
     "enforcement_status", "enforcement_agency", "enforcement_entry",
     "is_military", "identity_hidden", "outside_radius", "emitter_category",
     "icon_rotatable", "icon_rotation_deg", "icon_rotation_basis", "squawk",

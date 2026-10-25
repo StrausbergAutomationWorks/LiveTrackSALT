@@ -116,6 +116,34 @@ class TestWhatIsDrawn(unittest.TestCase):
         self.assertEqual(out["aaaaaa"]["icon"], "mdi:helicopter")
 
 
+FED = {"a0ffff": {"registration": "N809EM", "operator": "Department of Homeland Security",
+                  "operator_short": "DHS"},
+        "def456": {"operator_short": "X"}}       # cleared on the list: stays cleared
+
+
+class TestFederalRegistrants(unittest.TestCase):
+    def test_a_registrant_off_the_list_is_drawn_lit_and_named(self):
+        t = tracker.Tracker(CENTRE[0], CENTRE[1], 56.0)
+        out = t.build([], [obs("a0ffff", **FAR), obs("def456", **FAR)], LIST, federal=FED)
+        r = out["a0ffff"]
+        self.assertEqual(r["marker_label"], "DHS")
+        self.assertIn("l=g", r["entity_picture"])
+        self.assertIn("t=law", r["entity_picture"])
+        self.assertEqual(r["identified_by"], "faa_government")
+        self.assertNotIn("enforcement_status", r)
+        self.assertNotIn("def456", out)
+
+    def test_without_the_table_it_is_not_drawn_outside(self):
+        _, out = build([], [obs("a0ffff", **FAR)])
+        self.assertNotIn("a0ffff", out)
+
+    def test_the_cap_keeps_a_registrant(self):
+        t = tracker.Tracker(CENTRE[0], CENTRE[1], 56.0)
+        circle = [obs("%06x" % (0xc00000 + i), lat=39.822 + i * 0.001) for i in range(5)] + [obs("a0ffff", lat=39.872)]
+        out = t.build(circle, [], LIST, max_aircraft=2, federal=FED)
+        self.assertIn("a0ffff", out)
+
+
 class TestMotion(unittest.TestCase):
     def test_previous_fix_and_the_stale_bounce(self):
         t, out = build([obs("aaaaaa", t=1000)], [])

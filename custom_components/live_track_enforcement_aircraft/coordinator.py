@@ -50,7 +50,11 @@ class EnforcementCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict[str, Any]:
         now = time.time()
-        self.poll.set_hexes(CONSUMER, self.reader.hexes(el.SOURCED, el.DETECTED) if self.nationwide else None)
+        # The list's sourced and detected hexes, and the FAA's federal law-enforcement registrants when an
+        # installed integration publishes them (enforcement_list.FEDERAL_KEY; Live Track Aircraft does).
+        federal = self.hass.data.get(el.FEDERAL_KEY) or {}
+        self.poll.set_hexes(CONSUMER, (self.reader.hexes(el.SOURCED, el.DETECTED) | set(federal))
+                            if self.nationwide else None)
         hex_status = await self.poll.hex_round(self._session, now)
         circle_status = "ok"
         try:
@@ -68,7 +72,7 @@ class EnforcementCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("Focus area: %s (%s in a row)", err, self._circle_failures)
         listed = self.poll.hex_observations(CONSUMER) if self.nationwide else []
         skip = self.poll.claimed_by_others(CONSUMER)
-        aircraft = self.tracker.build(self._circle, listed, self.reader, skip, MAX_AIRCRAFT)
+        aircraft = self.tracker.build(self._circle, listed, self.reader, skip, MAX_AIRCRAFT, federal)
         self.poll.claim(CONSUMER, aircraft.keys())
         return {
             "aircraft": aircraft,
@@ -76,6 +80,8 @@ class EnforcementCoordinator(DataUpdateCoordinator):
             "outside_radius": sum(1 for r in aircraft.values() if r.get("outside_radius")),
             # hexes another integration draws (Live Track Aircraft inside its circle), left to it
             "claimed_elsewhere": len(skip),
+            # federal registrants found in hass.data (0 when no installed integration holds the registry)
+            "federal_registrants": len(federal),
             "circle_status": circle_status,
             "hex_status": hex_status,
             "source_backoff": self.poll.backoff.status(),

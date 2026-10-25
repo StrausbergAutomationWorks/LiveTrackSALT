@@ -72,29 +72,38 @@ class Tracker:
         self._tilt_forward: dict[str, bool] = {}
 
     def build(self, circle: list[Observation], listed: list[Observation], reader,
-              skip: frozenset[str] = frozenset(), max_aircraft: int = 250) -> dict[str, dict[str, Any]]:
-        """circle: the focus area's answer; listed: the hex round's answer for the list's hexes."""
+              skip: frozenset[str] = frozenset(), max_aircraft: int = 250,
+              federal: dict[str, dict[str, Any]] | None = None) -> dict[str, dict[str, Any]]:
+        """circle: the focus area's answer; listed: the hex round's answer for the watched hexes.
+
+        federal: the FAA's federal law-enforcement registrants, when an installed integration holds the
+        registry (enforcement_list.FEDERAL_KEY): watched nationwide too, so a registration newer than the
+        list's build is not lost (Enforcement SSOT section 3.5 step 2).
+        """
+        federal = federal or {}
         out: dict[str, dict[str, Any]] = {}
         near = []
         for obs in circle:
             if obs.identity in skip:
                 continue
-            rec = self.record(obs, self._entry(reader, obs.identity))
+            rec = self.record(obs, self._entry(reader, obs.identity), federal.get(obs.identity))
             if rec is not None:
                 near.append(rec)
         # ! The cap is a guard rail on the focus area only, nearest first; a listed aircraft is never dropped.
         near.sort(key=lambda r: r["distance_km"])
         for rec in near:
-            if len(out) >= max_aircraft and rec.get("enforcement_status") is None:
+            if len(out) >= max_aircraft and not (rec.get("enforcement_status") or rec.get("identified_by")):
                 continue
             out[rec["identity"]] = rec
         for obs in listed:
             if obs.identity in skip or obs.identity in out:
                 continue
             entry = self._entry(reader, obs.identity)
-            if entry is None:
+            fed = federal.get(obs.identity)
+            cleared = reader is not None and reader.status(obs.identity) == el.CLEARED
+            if entry is None and (fed is None or cleared):
                 continue
-            rec = self.record(obs, entry)
+            rec = self.record(obs, entry, fed)
             if rec is not None:
                 rec["outside_radius"] = rec["distance_km"] > self.radius_km
                 out[obs.identity] = rec
@@ -111,7 +120,8 @@ class Tracker:
             return None
         return entry
 
-    def record(self, obs: Observation, entry: el.Entry | None) -> dict[str, Any] | None:
+    def record(self, obs: Observation, entry: el.Entry | None,
+               fed: dict[str, Any] | None = None) -> dict[str, Any] | None:
         here = (round(obs.latitude, 6), round(obs.longitude, 6))
         cur = self._fix.get(obs.identity)
         # ! A STALE OR REPEATED OBSERVATION re-publishes what was published (Live Track Aircraft,
@@ -143,7 +153,7 @@ class Tracker:
                            ("course_deg", obs.course_deg), ("aircraft_type", obs.type_code)):
             if value is not None:
                 rec[key] = value
-        rec.update(self._describe(obs, entry))
+        rec.update(self._describe(obs, entry, fed))
         rec["marker_label"] = marker_label(obs, rec)
         if prev is not None:
             segment = latest[2] - prev[2]
@@ -155,7 +165,8 @@ class Tracker:
         self._last_rec[obs.identity] = rec
         return rec
 
-    def _describe(self, obs: Observation, entry: el.Entry | None) -> dict[str, Any]:
+    def _describe(self, obs: Observation, entry: el.Entry | None,
+                  fed: dict[str, Any] | None = None) -> dict[str, Any]:
         out: dict[str, Any] = {}
         rotor = airframe.is_rotorcraft(obs.emitter_category, obs.type_code)
         icon_category = "rotorcraft" if rotor else None
@@ -192,10 +203,23 @@ class Tracker:
             out["operator"] = obs.own_op
             out["operator_name_source"] = "feed"
         category = owner_category(entry)
+        registrant = fed is not None and entry is None
+        if registrant:
+            # ! A FEDERAL REGISTRANT NOT ON THE LIST is drawn as Live Track Aircraft's owner rules draw
+            # it: the blue fill, lit (lights_for), named from the FAA registry.
+            category = "Federal law enforcement"
+            out["identified_by"] = "faa_government"
+            for name in ("operator", "operator_short"):
+                if fed.get(name):
+                    out[name] = fed[name]
+            if fed.get("operator"):
+                out["operator_name_source"] = "government"
+            if fed.get("registration") and "registration" not in out:
+                out["list_registration"] = fed["registration"]
         if category:
             out["operator_category"] = category
         detected = entry is not None and entry.status == el.DETECTED
-        sourced = entry is not None and entry.status == el.SOURCED
+        sourced = (entry is not None and entry.status == el.SOURCED) or registrant
         if entry is not None:
             out["enforcement_status"] = entry.status
             if entry.agency:
@@ -223,6 +247,8 @@ def marker_label(obs: Observation, rec: dict[str, Any]) -> str:
         return callsign
     if rec.get("identity_hidden"):
         return "Identity hidden"
+    if rec.get("operator_short"):
+        return _shorten(rec["operator_short"])
     if rec.get("operator"):
         return _shorten(rec["operator"])
     return callsign or obs.type_code or obs.identity.upper()
