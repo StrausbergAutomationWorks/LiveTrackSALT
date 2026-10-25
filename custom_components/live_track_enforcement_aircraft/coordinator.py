@@ -23,8 +23,9 @@ from saw_livetrack import enforcement_list as el
 from saw_livetrack import faa_registry as fr
 
 from .const import (
-    CONF_LATITUDE, CONF_LONGITUDE, CONF_NATIONWIDE, CONF_RADIUS_KM, CONSUMER, DEFAULT_NATIONWIDE,
-    DEFAULT_RADIUS_KM, MAX_AIRCRAFT, MAX_TRANSIENT_FAILURES, SCAN_INTERVAL_S, USER_AGENT,
+    CONF_LATITUDE, CONF_LONGITUDE, CONF_MAX_AIRCRAFT, CONF_NATIONWIDE, CONF_RADIUS_KM, CONSUMER,
+    DEFAULT_MAX_AIRCRAFT, DEFAULT_NATIONWIDE, DEFAULT_RADIUS_KM, MAX_TRANSIENT_FAILURES, SCAN_INTERVAL_S,
+    USER_AGENT,
 )
 from .tracker import Tracker
 
@@ -39,6 +40,7 @@ class EnforcementCoordinator(DataUpdateCoordinator):
         self.longitude = float(opts.get(CONF_LONGITUDE, hass.config.longitude))
         self.radius_km = float(opts.get(CONF_RADIUS_KM, DEFAULT_RADIUS_KM))
         self.nationwide = bool(opts.get(CONF_NATIONWIDE, DEFAULT_NATIONWIDE))
+        self.max_aircraft = int(opts.get(CONF_MAX_AIRCRAFT, DEFAULT_MAX_AIRCRAFT))
         super().__init__(hass, _LOGGER, name="Live Track Enforcement Aircraft",
                          update_interval=timedelta(seconds=SCAN_INTERVAL_S))
         self._session = async_get_clientsession(hass)
@@ -84,7 +86,7 @@ class EnforcementCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("Focus area: %s (%s in a row)", err, self._circle_failures)
         listed = self.poll.hex_observations(CONSUMER) if self.nationwide else []
         skip = self.poll.claimed_by_others(CONSUMER)
-        aircraft = self.tracker.build(self._circle, listed, self.reader, skip, MAX_AIRCRAFT, federal)
+        aircraft = self.tracker.build(self._circle, listed, self.reader, skip, self.max_aircraft, federal)
         self.poll.claim(CONSUMER, aircraft.keys())
         # Which feed each aircraft came from, for its attribution: the focus area's answer may be another
         # integration's, from adsb.lol; the hex round is always adsb.fi.
@@ -104,5 +106,6 @@ class EnforcementCoordinator(DataUpdateCoordinator):
             "source_backoff": self.poll.backoff.status(),
             "list": self.reader.summary,
             "radius_km": self.radius_km,
+            "max_aircraft": self.max_aircraft,
             "nationwide": self.nationwide,
         }

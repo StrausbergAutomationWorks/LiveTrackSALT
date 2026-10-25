@@ -244,9 +244,19 @@ class Tracker:
             if entry.registration and "registration" not in out:
                 out["list_registration"] = entry.registration
         tone = lib.tone_for(gov is not None or registrant, icon_category, category, military)
+        # ! THE LIGHTS (Lee 2026-10-25 14:14: an aircraft off the list is "drawn normally", meaning
+        # Live Track Aircraft's wig-wag): a detection stays unlit under its ring (decisions K, O);
+        # a sourced aircraft or a federal registrant glows; anything else takes the owner rules,
+        # as Live Track Aircraft's coordinator, so an unlisted police aircraft wig-wags.
+        if detected:
+            lights = False
+        elif sourced:
+            lights = lib.LIGHTS_GLOW
+        else:
+            lights = lib.lights_for(category)
         out["entity_picture"] = icons.picture_url(
             key, tone, lib.weight_for(obs.emitter_category),
-            lights=lib.LIGHTS_GLOW if sourced else False, detected=detected)
+            lights=lights, detected=detected)
         return out
 
 

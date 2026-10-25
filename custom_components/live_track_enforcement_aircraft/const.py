@@ -40,7 +40,13 @@ DEFAULT_NATIONWIDE = True
 # ! 15 s, Live Track Aircraft's measured floor: at 5 s, 196 of 360 requests returned HTTP 429.
 SCAN_INTERVAL_S = 15
 MAX_TRANSIENT_FAILURES = 3
-MAX_AIRCRAFT = 250              # a guard rail on the focus area, not a display control
+# ! THE FOCUS AREA'S CAP IS THE USER'S, as Live Track Aircraft's max_aircraft (Lee 2026-10-25 14:14:
+# the focus area "adjustable and moveable just like LTA's"). A guard rail on the focus area, not a
+# display control; listed aircraft and registrants are never dropped (tracker.build).
+CONF_MAX_AIRCRAFT = "max_aircraft"
+DEFAULT_MAX_AIRCRAFT = 250
+MIN_MAX_AIRCRAFT = 1
+MAX_MAX_AIRCRAFT = 1000
 MAX_SEGMENT_S = 300
 SLOW_GROUND_SPEED_KMH = 30.0
 

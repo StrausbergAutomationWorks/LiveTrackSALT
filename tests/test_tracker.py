@@ -213,11 +213,13 @@ class TestFederalRegistrants(unittest.TestCase):
         self.assertEqual((r["operator_category"], r["operator_short"]), ("Federal law enforcement", "FBI"))
         self.assertIn("t=mil", r["entity_picture"])
 
-    def test_an_unlisted_police_aircraft_inside_fills_white_unlit(self):
+    def test_an_unlisted_police_aircraft_inside_wigwags_as_in_live_track_aircraft(self):
+        # Lee 2026-10-25 14:14: off the list is "drawn normally", meaning Live Track Aircraft's wig-wag
         _, out = build([obs("abc125", callsign="N9PD")], [], reg=registry({"ABC125": ["N9PD", "CITY OF EXAMPLE POLICE DEPT", "IL"]}))
         pic = out["abc125"]["entity_picture"]
         self.assertIn("t=police", pic)
-        self.assertNotIn("l=", pic)
+        self.assertIn("l=w", pic)
+        self.assertNotIn("l=g", pic)
         self.assertNotIn("d=1", pic)
         self.assertEqual(out["abc125"]["operator_short"], "Example Police")
 

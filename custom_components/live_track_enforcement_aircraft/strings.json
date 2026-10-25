@@ -7,6 +7,7 @@
         "data": {
           "location": "Centre of the focus area",
           "radius_km": "Radius of the focus area (km)",
+          "max_aircraft": "Most aircraft shown in the focus area (listed aircraft are always shown)",
           "nationwide": "Show listed aircraft outside the focus area"
         }
       }
@@ -25,6 +26,7 @@
         "data": {
           "location": "Centre of the focus area",
           "radius_km": "Radius of the focus area (km)",
+          "max_aircraft": "Most aircraft shown in the focus area (listed aircraft are always shown)",
           "nationwide": "Show listed aircraft outside the focus area"
         }
       }
