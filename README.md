@@ -106,7 +106,7 @@ kilometres, and whether to show listed aircraft outside it.
 | | |
 |---|---|
 | Domain | `live_track_salt` |
-| Entities | one `geo_location` entity per aircraft, named `Enforcement aircraft <hex>`, created and removed as aircraft come and go; one sensor, `Live Track SALT aircraft shown`, counting the aircraft shown |
+| Entities | one `geo_location` entity per aircraft, named `SALT aircraft <hex>` (so `geo_location.salt_aircraft_<hex>`), created and removed as aircraft come and go; one sensor, `Live Track SALT aircraft shown`, counting the aircraft shown |
 | Identity | ICAO hex, never a callsign |
 | Positions | [adsb.fi](https://adsb.fi): one request a minute for the whole list, and the focus area every 15 seconds |
 | Shared code | [`saw-livetrack`](https://pypi.org/project/saw-livetrack/): the list reader, the aircraft icons and the shared poll |

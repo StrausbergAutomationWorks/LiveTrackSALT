@@ -4,8 +4,10 @@ Contract: 10_SEED/06_MAP_CONTRACT.md. `state` is the distance (from the focus ce
 domain, which the shared map filters on.
 ! NO unique_id, as Live Track Aircraft (its SSOT, "2026-09-11 EVENING"): aircraft recur by the
 thousand and a registry row each would cost tens of MB; the entity_id comes from the name instead.
-! THE NAME IS "Enforcement aircraft <HEX>", so the id is geo_location.enforcement_aircraft_<hex>.
-"Aircraft <HEX>" would collide with Live Track Aircraft's geo_location.aircraft_<hex>.
+! THE NAME IS "SALT aircraft <HEX>", so the id is geo_location.salt_aircraft_<hex>.
+"Aircraft <HEX>" would collide with Live Track Aircraft's geo_location.aircraft_<hex>, and
+"Enforcement aircraft <HEX>" with Live Track Enforcement Aircraft's, which SALT succeeds (renamed
+2026-10-28, Lee). tests/test_entity_name.py checks both.
 """
 from __future__ import annotations
 
@@ -62,7 +64,7 @@ class EnforcementAircraft(GeolocationEvent):
     def __init__(self, coordinator: EnforcementCoordinator, identity: str) -> None:
         self._coordinator = coordinator
         self._identity = identity
-        self._attr_name = f"Enforcement aircraft {identity.upper()}"
+        self._attr_name = f"SALT aircraft {identity.upper()}"
 
     def _rec(self) -> dict[str, Any] | None:
         return ((self._coordinator.data or {}).get("aircraft") or {}).get(self._identity)
