@@ -349,7 +349,7 @@ class TestBoundaries(unittest.TestCase):
         self.assertIn('rec["feed"] = self.circle_source', coord)
         geo = dict(self._code())["geo_location.py"]
         self.assertIn('LOL_ATTRIBUTION if rec.get("feed") == "adsb.lol" else FEED_ATTRIBUTION', geo)
-        self.assertIn('"saw-livetrack>=0.2.16,<0.3"', dict(self._code())["manifest.json"])
+        self.assertIn('"saw-livetrack>=0.2.17,<0.3"', dict(self._code())["manifest.json"])
 
     def test_the_registry_is_loaded_refreshed_and_passed(self):
         init = dict(self._code())["__init__.py"]
@@ -391,7 +391,8 @@ class TestCharter(unittest.TestCase):
         self.assertIn("l=c", rec["entity_picture"])
         self.assertNotIn("l=g", rec["entity_picture"])
         self.assertNotIn("d=1", rec["entity_picture"])
-        self.assertNotIn("operator_short", rec)          # the list's agency is not put in the hover as its operator
+        # the hover's " · ICE Air Charter?" (Lee 2026-10-29 13:45); the list's agency (ICE) is never put there
+        self.assertEqual(rec["operator_short"], "ICE Air Charter?")
 
     def test_watched_nationwide(self):
         _, out = self.run_([], [self.airliner(**FAR)])
@@ -404,6 +405,18 @@ class TestCharter(unittest.TestCase):
         _, out = self.run_(crowd + [self.airliner(lat=40.122, lon=-84.050)], [], cap=2)
         self.assertIn("a2c4e0", out)
         self.assertEqual(len(out), 3)
+
+    def test_a_charter_on_its_own_designator_reads_by_name(self):
+        _, out = self.run_([obs("a2c4e0", emitter_category="A3", type_code="A320", callsign="GXA6181")], [])
+        self.assertEqual(out["a2c4e0"]["airline_short"], "GlobalX")
+        self.assertEqual(out["a2c4e0"]["operator_short"], "ICE Air Charter?")
+        _, out = self.run_([obs("a2c4e0", emitter_category="A3", type_code="A320", callsign="VELUX46")], [])  # a special callsign has no airline
+        self.assertNotIn("airline_short", out["a2c4e0"])
+
+    def test_a_detection_says_so_in_the_hover(self):
+        t, out = self.run_([obs("ad0001", callsign="TROY505")], [])
+        self.assertEqual(out["ad0001"]["enforcement_status"], el.DETECTED)
+        self.assertEqual(out["ad0001"]["operator_short"], tracker.LABEL_DETECTED)
 
     def test_a_charter_is_never_a_troy_detection(self):
         t, out = self.run_([obs("a2c4e0", callsign="TROY505")], [])

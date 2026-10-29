@@ -40,6 +40,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from saw_livetrack import aircraft_icons as lib
+from saw_livetrack import airlines
 from saw_livetrack import enforcement_list as el
 from saw_livetrack import faa_registry as fr
 from saw_livetrack.adsb_poll import Observation, km_between
@@ -243,6 +244,10 @@ class Tracker:
             out["is_military"] = True
         if extra.get("identity_hidden"):
             out["identity_hidden"] = True
+        # ! The hover's first line (Lee 2026-10-29 14:51, as Live Track Aircraft): "GlobalX 6181", not "GXA6181".
+        short_name = airlines.airline_short(obs.callsign)
+        if short_name:
+            out["airline_short"] = short_name
         if obs.own_op:
             out["operator"] = obs.own_op
             out["operator_name_source"] = "feed"
@@ -279,6 +284,12 @@ class Tracker:
             out["operator_short"] = entry.agency
         detected = entry is not None and entry.status == el.DETECTED
         charter = entry is not None and entry.status == el.CHARTER
+        # ! THE HOVER'S " · <status>" (Lee 2026-10-29 13:45; 06_MAP_CONTRACT.md D4b rule 12): what the list holds,
+        # where no agency is named. A charter always says so; a detection only when nothing names an agency.
+        if charter:
+            out["operator_short"] = LABEL_CHARTER
+        elif detected and not out.get("operator_short"):
+            out["operator_short"] = LABEL_PIA if out.get("identity_hidden") else LABEL_DETECTED
         sourced = (entry is not None and entry.status == el.SOURCED) or registrant
         if entry is not None and entry.status == el.DETECTED and obs.identity in self.detections:
             out["detected_by"] = self.detections[obs.identity]["detected_by"]
