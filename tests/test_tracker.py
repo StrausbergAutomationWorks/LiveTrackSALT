@@ -349,7 +349,7 @@ class TestBoundaries(unittest.TestCase):
         self.assertIn('rec["feed"] = self.circle_source', coord)
         geo = dict(self._code())["geo_location.py"]
         self.assertIn('LOL_ATTRIBUTION if rec.get("feed") == "adsb.lol" else FEED_ATTRIBUTION', geo)
-        self.assertIn('"saw-livetrack>=0.2.15,<0.3"', dict(self._code())["manifest.json"])
+        self.assertIn('"saw-livetrack>=0.2.16,<0.3"', dict(self._code())["manifest.json"])
 
     def test_the_registry_is_loaded_refreshed_and_passed(self):
         init = dict(self._code())["__init__.py"]
@@ -364,6 +364,57 @@ class TestBoundaries(unittest.TestCase):
     def test_never_imports_live_track_aircraft(self):
         for name, text in self._code():
             self.assertIsNone(re.search(r"^\s*(from|import)\s+[.\w]*live_track_aircraft\b", text, re.M), name)
+
+
+CHARTER_LIST = reader([
+    {"hex": "a00808", "status": "sourced", "agency": "DHS", "entry": "us-federal-law-enforcement"},
+    {"hex": "a2c4e0", "status": "ice_air_charter", "agency": "ICE", "entry": "ice-air-charter-a2c4e0",
+     "registration": "N278GX"},
+])
+
+
+class TestCharter(unittest.TestCase):
+    """Backlog 313 (Lee 2026-10-29 00:37): an ICE Air charter airframe."""
+
+    def run_(self, circle, listed, cap=250, t=None):
+        t = t or tracker.Tracker(CENTRE[0], CENTRE[1], 56.0, REG)
+        return t, t.build(circle, listed, CHARTER_LIST, frozenset(), cap)
+
+    def airliner(self, h="a2c4e0", **kw):
+        return obs(h, emitter_category="A3", type_code="A320", callsign="GXA301", **kw)
+
+    def test_drawn_with_the_steady_glow_and_the_question(self):
+        _, out = self.run_([self.airliner()], [])
+        rec = out["a2c4e0"]
+        self.assertEqual(rec["enforcement_status"], "ice_air_charter")
+        self.assertEqual(rec["marker_label"], "ICE Air Charter?")
+        self.assertIn("l=c", rec["entity_picture"])
+        self.assertNotIn("l=g", rec["entity_picture"])
+        self.assertNotIn("d=1", rec["entity_picture"])
+        self.assertNotIn("operator_short", rec)          # the list's agency is not put in the hover as its operator
+
+    def test_watched_nationwide(self):
+        _, out = self.run_([], [self.airliner(**FAR)])
+        self.assertIn("a2c4e0", out)
+        self.assertTrue(out["a2c4e0"]["outside_radius"])
+        self.assertEqual(out["a2c4e0"]["marker_label"], "ICE Air Charter?")
+
+    def test_kept_past_the_cap(self):
+        crowd = [obs("b%05x" % i, lat=39.818, lon=-84.050) for i in range(3)]
+        _, out = self.run_(crowd + [self.airliner(lat=40.122, lon=-84.050)], [], cap=2)
+        self.assertIn("a2c4e0", out)
+        self.assertEqual(len(out), 3)
+
+    def test_a_charter_is_never_a_troy_detection(self):
+        t, out = self.run_([obs("a2c4e0", callsign="TROY505")], [])
+        self.assertEqual(t.detections, {})
+        self.assertEqual(out["a2c4e0"]["enforcement_status"], "ice_air_charter")
+
+    def test_the_hex_round_takes_every_watched_status(self):
+        with open(os.path.join(COMP, "coordinator.py"), encoding="utf-8") as fh:
+            coord = fh.read()
+        self.assertIn("self.reader.hexes(*el.WATCHED)", coord)
+        self.assertEqual(CHARTER_LIST.hexes(*el.WATCHED), frozenset({"a00808", "a2c4e0"}))
 
 
 if __name__ == "__main__":

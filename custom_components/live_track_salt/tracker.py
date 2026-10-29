@@ -5,6 +5,9 @@ What is drawn (Enforcement SSOT section 3.1, decisions A, G, K, O):
     label, the red/blue glow over its owner-class fill;
   * every `detected_unconfirmed` hex, anywhere: "Detected, unconfirmed" ("Potential PIA" when the
     feed flags the address as a PIA), unlit, the dashed white ring over its owner-class fill;
+  * ! every `ice_air_charter` hex, anywhere (backlog 313; Lee 2026-10-29 00:37): an airliner that flies ICE Air
+    charters and other work too: "ICE Air Charter?", the library's STEADY charter glow (blue inside, red outside,
+    no flash) over its owner-class fill, watched nationwide and past the cap like sourced and detected;
   * a `cleared` hex is not drawn nationwide; inside the focus area it is an ordinary aircraft;
   * every other aircraft inside the focus area, as an ordinary aircraft;
   * ! A CALLSIGN SIGNAL (Lee 2026-10-28 23:11): an aircraft the list does not know, broadcasting a DHS
@@ -49,6 +52,8 @@ Fix = tuple[float, float, int]
 
 LABEL_DETECTED = "Detected, unconfirmed"
 LABEL_PIA = "Potential PIA"
+# ! THE LIBRARY'S (saw-livetrack 0.2.16, Lee 2026-10-29): Live Track Aircraft prints the same label.
+LABEL_CHARTER = el.CHARTER_LABEL
 FLAG_MILITARY = 1
 FLAG_PIA = 4
 MAX_LABEL_CHARS = 22
@@ -131,7 +136,7 @@ class Tracker:
         A callsign detection is a synthetic `detected_unconfirmed` entry, unless the list has since learned the hex."""
         entry = reader.entry(hex_id) if reader is not None else None
         if entry is not None:
-            return entry if entry.status in (el.SOURCED, el.DETECTED) else None
+            return entry if entry.status in el.WATCHED else None
         det = self.detections.get(hex_id)
         if det is not None:
             return el.Entry(hex=hex_id, status=el.DETECTED, entry=det["entry"])
@@ -273,6 +278,7 @@ class Tracker:
         if entry is not None and entry.status == el.SOURCED and entry.agency and not out.get("operator_short"):
             out["operator_short"] = entry.agency
         detected = entry is not None and entry.status == el.DETECTED
+        charter = entry is not None and entry.status == el.CHARTER
         sourced = (entry is not None and entry.status == el.SOURCED) or registrant
         if entry is not None and entry.status == el.DETECTED and obs.identity in self.detections:
             out["detected_by"] = self.detections[obs.identity]["detected_by"]
@@ -293,6 +299,9 @@ class Tracker:
             lights = False
         elif sourced:
             lights = lib.LIGHTS_GLOW
+        elif charter:
+            # ! An ICE Air charter: the steady glow, never the flash (Lee 2026-10-29 00:37, look C4).
+            lights = lib.LIGHTS_CHARTER
         else:
             lights = lib.lights_for(category)
         out["entity_picture"] = icons.picture_url(
@@ -306,6 +315,8 @@ def marker_label(obs: Observation, rec: dict[str, Any]) -> str:
     status = rec.get("enforcement_status")
     if status == el.DETECTED:
         return LABEL_PIA if rec.get("identity_hidden") else LABEL_DETECTED
+    if status == el.CHARTER:
+        return LABEL_CHARTER
     if status == el.SOURCED and rec.get("enforcement_agency"):
         return _shorten(rec["enforcement_agency"])
     callsign = (obs.callsign or "").strip()

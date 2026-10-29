@@ -65,13 +65,13 @@ class EnforcementCoordinator(DataUpdateCoordinator):
             if isinstance(saved, dict):
                 self.tracker.detections.update({k: v for k, v in saved.items() if isinstance(v, dict)})
             self._detections_loaded = True
-        # The list's sourced and detected hexes, and the FAA's federal law-enforcement registrants when an
+        # The list's watched hexes (sourced, detected and, since backlog 313, ICE Air charter), and the FAA's federal law-enforcement registrants when an
         # installed integration publishes them (enforcement_list.FEDERAL_KEY; Live Track Aircraft does).
         # ! The registrants from the instance's own FAA registry (backlog 300), so this integration keeps the
         # nationwide scope alone; what Live Track Aircraft publishes is kept for its fields.
         federal = {h: {} for h in (self.registry.gov.federal_law_enforcement_hexes() if self.registry else ())}
         federal.update(self.hass.data.get(el.FEDERAL_KEY) or {})
-        self.poll.set_hexes(CONSUMER, (self.reader.hexes(el.SOURCED, el.DETECTED) | set(federal)
+        self.poll.set_hexes(CONSUMER, (self.reader.hexes(*el.WATCHED) | set(federal)
                                        | set(self.tracker.detections))
                             if self.nationwide else None)
         hex_status = await self.poll.hex_round(self._session, now)

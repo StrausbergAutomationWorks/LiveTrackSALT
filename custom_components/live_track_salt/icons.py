@@ -10,6 +10,9 @@ loiterer never looks like a confirmed enforcement aircraft (decision K). Live Tr
 detection to its owner rules (decision N), so this is the only consumer: it lives here, not in the
 library (rule 2: hoist on the second consumer), and its revision is LOCAL_ART_REV.
 
+! THE ICE AIR CHARTER GLOW IS THE LIBRARY'S (saw-livetrack 0.2.16, LIGHTS_CHARTER, l=c): Live Track Aircraft
+draws it too, so it was hoisted at once (rule 2). picture_url() passes it through as any lights mode.
+
 ! IT IS LAID ON render()'s OUTPUT and so depends on two facts of it: the root
 viewBox="0 0 <w> <h>" and the closing </svg>. tests/test_icons.py asserts both against the installed
 library and pins the ringed pictures by digest.
