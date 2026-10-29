@@ -1,6 +1,6 @@
 """Load the component's PURE modules without Home Assistant (const, centre, icons, tracker).
 
-A package shell stands in for custom_components.live_track_enforcement_aircraft so the relative
+A package shell stands in for custom_components.live_track_salt so the relative
 imports resolve without running __init__.py. saw_livetrack comes from SAW_LIVETRACK_SRC when set (the
 library clone's src, for a version not yet on PyPI), else from what is installed.
 """
@@ -11,7 +11,7 @@ import types
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
-COMP = os.path.join(REPO, "custom_components", "live_track_enforcement_aircraft")
+COMP = os.path.join(REPO, "custom_components", "live_track_salt")
 
 _src = os.environ.get("SAW_LIVETRACK_SRC")
 if _src and _src not in sys.path:

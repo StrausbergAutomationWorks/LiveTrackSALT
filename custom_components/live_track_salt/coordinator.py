@@ -41,7 +41,7 @@ class EnforcementCoordinator(DataUpdateCoordinator):
         self.radius_km = float(opts.get(CONF_RADIUS_KM, DEFAULT_RADIUS_KM))
         self.nationwide = bool(opts.get(CONF_NATIONWIDE, DEFAULT_NATIONWIDE))
         self.max_aircraft = int(opts.get(CONF_MAX_AIRCRAFT, DEFAULT_MAX_AIRCRAFT))
-        super().__init__(hass, _LOGGER, name="Live Track Enforcement Aircraft",
+        super().__init__(hass, _LOGGER, name="Live Track SALT",
                          update_interval=timedelta(seconds=SCAN_INTERVAL_S))
         self._session = async_get_clientsession(hass)
         self.poll = poll

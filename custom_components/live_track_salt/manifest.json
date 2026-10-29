@@ -1,14 +1,14 @@
 {
-  "domain": "live_track_enforcement_aircraft",
-  "name": "Live Track Enforcement Aircraft",
+  "domain": "live_track_salt",
+  "name": "Live Track SALT",
   "after_dependencies": ["lovelace"],
   "codeowners": ["@LeeS773-prog"],
   "config_flow": true,
   "dependencies": ["http"],
-  "documentation": "https://github.com/StrausbergAutomationWorks/LiveTrackEnforcementAircraft",
+  "documentation": "https://github.com/StrausbergAutomationWorks/LiveTrackSALT",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/StrausbergAutomationWorks/LiveTrackEnforcementAircraft/issues",
+  "issue_tracker": "https://github.com/StrausbergAutomationWorks/LiveTrackSALT/issues",
   "requirements": ["saw-livetrack>=0.2.15,<0.3"],
   "single_config_entry": true,
   "version": "0.1.0"

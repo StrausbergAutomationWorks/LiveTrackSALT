@@ -1,11 +1,11 @@
-"""Constants for Live Track Enforcement Aircraft.
+"""Constants for Live Track SALT.
 
 Identity is PERMANENT: the domain is fixed at first install and no rename recovers it
 (10_SEED/00_START_HERE.md, damage item 2). Reserved by Lee 2026-10-24 01:29.
 """
 from __future__ import annotations
 
-DOMAIN = "live_track_enforcement_aircraft"
+DOMAIN = "live_track_salt"
 
 # ! THE TERMS REQUIRE THIS. adsb.fi: "You must cite adsb.fi and include a link to our home page"
 # (05_SHARED_LESSONS.md B16a). The EnforcementAircraft list is ODbL v1.0. This integration never asks
@@ -18,8 +18,8 @@ LIST_ATTRIBUTION = ("Contains information from EnforcementAircraft "
                     "(https://github.com/StrausbergAutomationWorks/EnforcementAircraft), "
                     "which is made available under the Open Database License (ODbL) v1.0")
 ATTRIBUTION = FEED_ATTRIBUTION + "; " + LIST_ATTRIBUTION
-USER_AGENT = ("LiveTrackEnforcementAircraft/0.1 "
-              "(+https://github.com/StrausbergAutomationWorks/LiveTrackEnforcementAircraft)")
+USER_AGENT = ("LiveTrackSALT/0.1 "
+              "(+https://github.com/StrausbergAutomationWorks/LiveTrackSALT)")
 
 # The consumer name this integration registers in the shared poll (saw_livetrack.adsb_poll).
 CONSUMER = DOMAIN

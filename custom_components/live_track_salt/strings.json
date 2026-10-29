@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Live Track Enforcement Aircraft",
+        "title": "Live Track SALT",
         "description": "Listed enforcement aircraft wherever they are, from the public EnforcementAircraft list, plus every aircraft in one focus area. Positions from adsb.fi.",
         "data": {
           "location": "Centre of the focus area",
@@ -22,7 +22,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Live Track Enforcement Aircraft",
+        "title": "Live Track SALT",
         "data": {
           "location": "Centre of the focus area",
           "radius_km": "Radius of the focus area (km)",

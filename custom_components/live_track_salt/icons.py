@@ -20,7 +20,7 @@ import re
 
 from saw_livetrack import aircraft_icons as lib
 
-URL_BASE = "/api/live_track_enforcement_aircraft/icon"
+URL_BASE = "/api/live_track_salt/icon"
 
 # ! THE a= REVISION IS THE LIBRARY'S PLUS OURS. The library bumps ART_REV with any change to its
 # pictures; LOCAL_ART_REV bumps with any change to the ring. Both only go up, so the sum does too,

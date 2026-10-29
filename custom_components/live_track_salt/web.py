@@ -25,7 +25,7 @@ class EnforcementIconView(HomeAssistantView):
     """One aircraft silhouette, unrotated; ?d=1 adds the detection ring."""
 
     url = icons.URL_BASE + "/{key}/fixed.svg"
-    name = "api:live_track_enforcement_aircraft:icon"
+    name = "api:live_track_salt:icon"
     requires_auth = False
 
     async def get(self, request: web.Request, key: str) -> web.Response:

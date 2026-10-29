@@ -90,7 +90,7 @@ class Remove(unittest.TestCase):
         async def withdraw(hass, domain):
             calls.append(domain)
 
-        ns = {"DOMAIN": "live_track_enforcement_aircraft", "async_withdraw_map_card": withdraw,
+        ns = {"DOMAIN": "live_track_salt", "async_withdraw_map_card": withdraw,
               "HomeAssistant": object, "ConfigEntry": object}
         exec(compile(ast.fix_missing_locations(mod), INIT, "exec"), ns)
 
@@ -100,7 +100,7 @@ class Remove(unittest.TestCase):
 
         class CE:
             def async_entries(self, domain):
-                assert domain == "live_track_enforcement_aircraft"
+                assert domain == "live_track_salt"
                 return [E(i) for i in entry_ids]
 
         class H:
@@ -110,13 +110,13 @@ class Remove(unittest.TestCase):
         return calls
 
     def test_last_entry_withdraws(self):
-        self.assertEqual(self._run(["a"], "a"), ["live_track_enforcement_aircraft"])
+        self.assertEqual(self._run(["a"], "a"), ["live_track_salt"])
 
     def test_another_entry_left_does_not_withdraw(self):
         self.assertEqual(self._run(["a", "b"], "a"), [])
 
     def test_entry_already_gone_from_the_list_still_withdraws(self):
-        self.assertEqual(self._run([], "a"), ["live_track_enforcement_aircraft"])
+        self.assertEqual(self._run([], "a"), ["live_track_salt"])
 
 
 class Shipped(unittest.TestCase):

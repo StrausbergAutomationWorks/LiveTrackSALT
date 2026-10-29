@@ -79,7 +79,7 @@ class TestUrl(unittest.TestCase):
         d = icons.picture_url("a7", "law", 0.8, lib.LIGHTS_GLOW, detected=True)
         self.assertEqual(d, "%s/a7/fixed.svg?t=law&w=0.80&d=1&b=0&a=%d" % (icons.URL_BASE, icons.ART_REV))
         self.assertEqual(icons.ART_REV, lib.ART_REV + icons.LOCAL_ART_REV)
-        self.assertTrue(icons.URL_BASE.startswith("/api/live_track_enforcement_aircraft/"))
+        self.assertTrue(icons.URL_BASE.startswith("/api/live_track_salt/"))
 
 
 class TestGolden(unittest.TestCase):

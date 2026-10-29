@@ -1,12 +1,16 @@
-# Live Track Enforcement Aircraft
+# Live Track SALT
 
-Immigration and federal law-enforcement aircraft on your Home Assistant map,
-wherever they fly, published as `geo_location` entities.
+Immigration enforcement on your Home Assistant map: the aircraft of ICE, CBP
+and the other federal, state and local agencies that take part in it, wherever
+they fly, published as `geo_location` entities. Enforcement ships, and possibly
+events, are to follow.
+
+Live Track SALT continues Live Track Enforcement Aircraft under a new name.
 
 ## Status
 
-**Working, not yet released.** The integration runs, but it is not in HACS
-yet and its repository stays private until the first release.
+**In development, not yet released.** It is not in HACS yet and its repository
+stays private until the first release.
 
 ## What it does
 
@@ -71,7 +75,7 @@ placeholders:
 lovelace:
   resource_mode: yaml
   resources:
-    - url: /live_track_enforcement_aircraft/map-card/<12 hex>/live-track-map-card.js?v=<version>&h=<12 hex>
+    - url: /live_track_salt/map-card/<12 hex>/live-track-map-card.js?v=<version>&h=<12 hex>
       type: module
 ```
 
@@ -85,7 +89,7 @@ when that copy is a newer release.
 Give it the aircraft with
 [auto-entities](https://github.com/thomasloven/lovelace-auto-entities),
 filtering on `domain: geo_location` and
-`attributes: {source: live_track_enforcement_aircraft}`. With Live Track
+`attributes: {source: live_track_salt}`. With Live Track
 Aircraft installed, add a second filter for `source: live_track_aircraft`: the
 two never draw the same aircraft.
 
@@ -101,8 +105,8 @@ kilometres, and whether to show listed aircraft outside it.
 
 | | |
 |---|---|
-| Domain | `live_track_enforcement_aircraft` |
-| Entities | one `geo_location` entity per aircraft, named `Enforcement aircraft <hex>`, created and removed as aircraft come and go; one sensor counting the aircraft shown |
+| Domain | `live_track_salt` |
+| Entities | one `geo_location` entity per aircraft, named `Enforcement aircraft <hex>`, created and removed as aircraft come and go; one sensor, `Live Track SALT aircraft shown`, counting the aircraft shown |
 | Identity | ICAO hex, never a callsign |
 | Positions | [adsb.fi](https://adsb.fi): one request a minute for the whole list, and the focus area every 15 seconds |
 | Shared code | [`saw-livetrack`](https://pypi.org/project/saw-livetrack/): the list reader, the aircraft icons and the shared poll |

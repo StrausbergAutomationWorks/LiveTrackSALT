@@ -27,7 +27,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
 class EnforcementCount(SensorEntity):
     _attr_should_poll = False
     _attr_has_entity_name = True
-    _attr_name = "Aircraft shown"
+    # ! Named with the integration, as Live Track Weather's sensors are. Under Live Track Enforcement
+    # Aircraft it was "Aircraft shown", and with no device that made the id sensor.aircraft_shown
+    # (measured on the box 2026-10-28). Now sensor.live_track_salt_aircraft_shown.
+    _attr_name = "Live Track SALT aircraft shown"
     _attr_icon = "mdi:shield-airplane"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "aircraft"

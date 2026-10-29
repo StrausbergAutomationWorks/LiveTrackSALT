@@ -1,4 +1,4 @@
-"""Live Track Enforcement Aircraft: listed enforcement aircraft wherever they are, plus one focus area.
+"""Live Track SALT: listed enforcement aircraft wherever they are, plus one focus area.
 
 The list is the public EnforcementAircraft data repository (ODbL v1.0), read through
 saw_livetrack.enforcement_list; positions come through saw_livetrack.adsb_poll, the instance's one
@@ -65,13 +65,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _check_list(_now=None) -> None:
         await reader.refresh(_list_session(hass), hass.async_add_executor_job)
 
-    hass.async_create_background_task(_check_list(), "live_track_enforcement_aircraft_list")
+    hass.async_create_background_task(_check_list(), "live_track_salt_list")
     entry.async_on_unload(async_track_time_interval(hass, _check_list, LIST_TICK))
 
     async def _check_registry(_now=None) -> None:
         await registry.refresh(async_get_clientsession(hass), hass.async_add_executor_job)
 
-    hass.async_create_background_task(_check_registry(), "live_track_enforcement_aircraft_registry")
+    hass.async_create_background_task(_check_registry(), "live_track_salt_registry")
     entry.async_on_unload(async_track_time_interval(hass, _check_registry, REGISTRY_TICK))
     await coordinator.async_config_entry_first_refresh()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
