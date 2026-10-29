@@ -7,6 +7,13 @@ What is drawn (Enforcement SSOT section 3.1, decisions A, G, K, O):
     feed flags the address as a PIA), unlit, the dashed white ring over its owner-class fill;
   * a `cleared` hex is not drawn nationwide; inside the focus area it is an ordinary aircraft;
   * every other aircraft inside the focus area, as an ordinary aircraft;
+  * ! A CALLSIGN SIGNAL (Lee 2026-10-28 23:11): an aircraft the list does not know, broadcasting a DHS
+    callsign (`TROY` and digits; NBC LA and TWZ report it as DHS's, CBP's scheme on RadioReference), is a
+    detection: drawn as a `detected_unconfirmed` entry (the ring, "Detected, unconfirmed", unlit; decisions
+    K, O) with `detected_by`, and WATCHED AT ONCE nationwide (its hex joins the hex round; the coordinator
+    keeps the set in HA storage). Never for a listed hex, a cleared one (found not involved) or a government
+    registrant (already drawn by the owner rules). Seen while another integration draws it, it is still
+    recorded, so it stays watched when it leaves that circle;
   * ! NOT an aircraft another integration already draws (Live Track Aircraft inside its circle,
     decision A): the shared poll's claims, passed in as `skip`, so one aircraft is one marker.
 
@@ -46,6 +53,8 @@ FLAG_MILITARY = 1
 FLAG_PIA = 4
 MAX_LABEL_CHARS = 22
 _LOOKS_LIKE_REGISTRATION = re.compile(r"^(N\d[A-Z0-9]*|[A-Z]{1,2}-[A-Z0-9]{3,5})$")
+# ! THE CALLSIGN SIGNALS: callsign pattern -> (entry name of the synthetic detection, detected_by text).
+CALLSIGN_SIGNALS = ((re.compile(r"^TROY\d{0,4}$"), "callsign-troy", "callsign TROY"),)
 
 
 def _iso(epoch_s: int) -> str:
@@ -69,6 +78,9 @@ class Tracker:
         self._angle: dict[str, float] = {}
         self._last_rec: dict[str, dict[str, Any]] = {}
         self._tilt_forward: dict[str, bool] = {}
+        # hex -> {"entry", "detected_by", "callsign", "first_seen", "last_seen"}; never pruned with the fixes.
+        self.detections: dict[str, dict[str, Any]] = {}
+        self.detections_added = False      # set when a NEW hex is detected; the coordinator saves and clears it
 
     def build(self, circle: list[Observation], listed: list[Observation], reader,
               skip: frozenset[str] = frozenset(), max_aircraft: int = 250,
@@ -82,6 +94,8 @@ class Tracker:
         federal = federal or {}
         out: dict[str, dict[str, Any]] = {}
         near = []
+        for obs in circle:                  # skipped ones too: another integration draws it, we still watch it
+            self._signal(reader, obs, federal)
         for obs in circle:
             if obs.identity in skip:
                 continue
@@ -111,13 +125,38 @@ class Tracker:
                 store.pop(gone, None)
         return out
 
-    @staticmethod
-    def _entry(reader, hex_id: str) -> el.Entry | None:
-        """The list entry that changes how this aircraft is drawn, or None (a cleared one is ordinary)."""
+    def _entry(self, reader, hex_id: str) -> el.Entry | None:
+        """The list entry that changes how this aircraft is drawn, or None (a cleared one is ordinary).
+
+        A callsign detection is a synthetic `detected_unconfirmed` entry, unless the list has since learned the hex."""
         entry = reader.entry(hex_id) if reader is not None else None
-        if entry is None or entry.status not in (el.SOURCED, el.DETECTED):
-            return None
-        return entry
+        if entry is not None:
+            return entry if entry.status in (el.SOURCED, el.DETECTED) else None
+        det = self.detections.get(hex_id)
+        if det is not None:
+            return el.Entry(hex=hex_id, status=el.DETECTED, entry=det["entry"])
+        return None
+
+    def _signal(self, reader, obs: Observation, federal: dict[str, dict[str, Any]]) -> None:
+        """Record a callsign detection: not on the list in any status, not a government registrant."""
+        callsign = (obs.callsign or "").strip().upper()
+        for pattern, entry_name, by in CALLSIGN_SIGNALS:
+            if not pattern.match(callsign):
+                continue
+            if reader is not None and reader.status(obs.identity) is not None:
+                return                       # sourced, detected or cleared: the list already decides
+            if obs.identity in federal or (self.registry is not None
+                                           and self.registry.lookup_government(obs.identity)):
+                return                       # a government registrant: the owner rules already draw it
+            seen = _iso(obs.observed_at)
+            det = self.detections.get(obs.identity)
+            if det is None:
+                self.detections[obs.identity] = {"entry": entry_name, "detected_by": by, "callsign": callsign,
+                                                 "first_seen": seen, "last_seen": seen}
+                self.detections_added = True
+            else:
+                det["last_seen"], det["callsign"] = seen, callsign
+            return
 
     def record(self, obs: Observation, entry: el.Entry | None,
                fed: dict[str, Any] | None = None) -> dict[str, Any] | None:
@@ -235,6 +274,8 @@ class Tracker:
             out["operator_short"] = entry.agency
         detected = entry is not None and entry.status == el.DETECTED
         sourced = (entry is not None and entry.status == el.SOURCED) or registrant
+        if entry is not None and entry.status == el.DETECTED and obs.identity in self.detections:
+            out["detected_by"] = self.detections[obs.identity]["detected_by"]
         if entry is not None:
             out["enforcement_status"] = entry.status
             if entry.agency:

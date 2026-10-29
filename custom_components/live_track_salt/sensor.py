@@ -15,8 +15,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import ATTRIBUTION, DOMAIN
 from .coordinator import EnforcementCoordinator
 
-_ATTRS = ("listed_shown", "outside_radius", "claimed_elsewhere", "federal_registrants", "circle_status", "hex_status",
-          "source_backoff", "list", "radius_km", "max_aircraft", "nationwide")
+_ATTRS = ("listed_shown", "outside_radius", "claimed_elsewhere", "federal_registrants", "detected_by_callsign",
+          "circle_status", "hex_status", "source_backoff", "list", "radius_km", "max_aircraft", "nationwide")
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,

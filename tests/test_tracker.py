@@ -66,6 +66,68 @@ def build(circle, listed, skip=frozenset(), cap=250, t=None, reg=REG):
     return t, t.build(circle, listed, LIST, skip, cap)
 
 
+class TestTroySignal(unittest.TestCase):
+    """Lee 2026-10-28: a DHS callsign (TROY...) on an aircraft the list does not know is a detection, watched at once."""
+
+    def test_unlisted_troy_is_a_detection_with_the_ring(self):
+        t, out = build([obs("aaa111", callsign="TROY305")], [])
+        rec = out["aaa111"]
+        self.assertEqual(rec["enforcement_status"], "detected_unconfirmed")
+        self.assertEqual(rec["marker_label"], "Detected, unconfirmed")
+        self.assertEqual(rec["detected_by"], "callsign TROY")
+        self.assertIn("d=1", rec["entity_picture"])
+        self.assertNotIn("l=g", rec["entity_picture"])
+        self.assertEqual(set(t.detections), {"aaa111"})
+        self.assertTrue(t.detections_added)
+        self.assertEqual(t.detections["aaa111"]["callsign"], "TROY305")
+
+    def test_watched_nationwide_after_it_leaves_the_focus_area(self):
+        t, _ = build([obs("aaa111", callsign="TROY305")], [])
+        _, out = build([], [obs("aaa111", t=1_800_000_060, **FAR)], t=t)
+        self.assertIn("aaa111", out)
+        self.assertTrue(out["aaa111"]["outside_radius"])
+        self.assertEqual(out["aaa111"]["enforcement_status"], "detected_unconfirmed")
+
+    def test_kept_when_the_aircraft_is_gone(self):
+        t, _ = build([obs("aaa111", callsign="TROY305")], [])
+        build([], [], t=t)
+        self.assertIn("aaa111", t.detections)
+
+    def test_a_bare_troy_and_four_digits_match_other_words_do_not(self):
+        for cs, hit in (("TROY", True), ("TROY7012", True), ("troy71", True), ("TROYAIR1", False),
+                        ("TROY12345", False), ("XTROY1", False), ("", False)):
+            t, _ = build([obs("aaa112", callsign=cs)], [])
+            self.assertEqual("aaa112" in t.detections, hit, cs)
+
+    def test_listed_aircraft_keep_their_status(self):
+        t, out = build([obs("a00808", callsign="TROY501"), obs("abc124", callsign="TROY502")], [])
+        self.assertEqual(out["a00808"]["enforcement_status"], "sourced")
+        self.assertNotIn("detected_by", out["a00808"])
+        self.assertNotIn("detected_by", out["abc124"])
+        self.assertEqual(t.detections, {})
+
+    def test_cleared_is_never_detected(self):
+        t, out = build([obs("def456", callsign="TROY503")], [])
+        self.assertEqual(t.detections, {})
+        self.assertNotIn("enforcement_status", out["def456"])
+
+    def test_a_government_registrant_is_left_to_the_owner_rules(self):
+        t, out = build([obs("a0eeee", callsign="TROY504")], [])
+        self.assertEqual(t.detections, {})
+        self.assertNotIn("enforcement_status", out["a0eeee"])
+
+    def test_claimed_by_another_integration_still_recorded_not_drawn(self):
+        t, out = build([obs("aaa113", callsign="TROY506")], [], skip=frozenset({"aaa113"}))
+        self.assertNotIn("aaa113", out)
+        self.assertIn("aaa113", t.detections)
+
+    def test_coordinator_watches_and_persists_the_detections(self):
+        src = open(os.path.join(COMP, "coordinator.py"), encoding="utf-8").read()
+        self.assertIn("set(self.tracker.detections)", src)
+        self.assertIn('Store(hass, 1, f"{DOMAIN}.detections")', src)
+        self.assertIn("async_save(dict(self.tracker.detections))", src)
+
+
 class TestWhatIsDrawn(unittest.TestCase):
     def test_sourced_anywhere_with_its_agency_and_the_glow(self):
         _, out = build([], [obs("a00808", **FAR), obs("a1b2c3", **FAR)])

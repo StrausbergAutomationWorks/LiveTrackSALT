@@ -16,6 +16,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from saw_livetrack import adsb_poll as ap
@@ -23,7 +24,7 @@ from saw_livetrack import enforcement_list as el
 from saw_livetrack import faa_registry as fr
 
 from .const import (
-    CONF_LATITUDE, CONF_LONGITUDE, CONF_MAX_AIRCRAFT, CONF_NATIONWIDE, CONF_RADIUS_KM, CONSUMER,
+    CONF_LATITUDE, CONF_LONGITUDE, CONF_MAX_AIRCRAFT, CONF_NATIONWIDE, CONF_RADIUS_KM, CONSUMER, DOMAIN,
     DEFAULT_MAX_AIRCRAFT, DEFAULT_NATIONWIDE, DEFAULT_RADIUS_KM, MAX_TRANSIENT_FAILURES, SCAN_INTERVAL_S,
     USER_AGENT,
 )
@@ -52,16 +53,26 @@ class EnforcementCoordinator(DataUpdateCoordinator):
         self.circle_source = ap.FI
         self._circle_failures = 0
         self._last_count: int | None = None
+        # ! CALLSIGN DETECTIONS SURVIVE A RESTART (Lee 2026-10-28: "a detection is watched at once"): the tracker's
+        # set, in HA storage under this domain; loaded before the first poll, saved when a new hex is detected.
+        self._detections_store = Store(hass, 1, f"{DOMAIN}.detections")
+        self._detections_loaded = False
 
     async def _async_update_data(self) -> dict[str, Any]:
         now = time.time()
+        if not self._detections_loaded:
+            saved = await self._detections_store.async_load()
+            if isinstance(saved, dict):
+                self.tracker.detections.update({k: v for k, v in saved.items() if isinstance(v, dict)})
+            self._detections_loaded = True
         # The list's sourced and detected hexes, and the FAA's federal law-enforcement registrants when an
         # installed integration publishes them (enforcement_list.FEDERAL_KEY; Live Track Aircraft does).
         # ! The registrants from the instance's own FAA registry (backlog 300), so this integration keeps the
         # nationwide scope alone; what Live Track Aircraft publishes is kept for its fields.
         federal = {h: {} for h in (self.registry.gov.federal_law_enforcement_hexes() if self.registry else ())}
         federal.update(self.hass.data.get(el.FEDERAL_KEY) or {})
-        self.poll.set_hexes(CONSUMER, (self.reader.hexes(el.SOURCED, el.DETECTED) | set(federal))
+        self.poll.set_hexes(CONSUMER, (self.reader.hexes(el.SOURCED, el.DETECTED) | set(federal)
+                                       | set(self.tracker.detections))
                             if self.nationwide else None)
         hex_status = await self.poll.hex_round(self._session, now)
         circle_status = "ok"
@@ -88,6 +99,9 @@ class EnforcementCoordinator(DataUpdateCoordinator):
         skip = self.poll.claimed_by_others(CONSUMER)
         aircraft = self.tracker.build(self._circle, listed, self.reader, skip, self.max_aircraft, federal)
         self.poll.claim(CONSUMER, aircraft.keys())
+        if self.tracker.detections_added:
+            self.tracker.detections_added = False
+            await self._detections_store.async_save(dict(self.tracker.detections))
         # Which feed each aircraft came from, for its attribution: the focus area's answer may be another
         # integration's, from adsb.lol; the hex round is always adsb.fi.
         in_circle = {o.identity for o in self._circle}
@@ -101,6 +115,8 @@ class EnforcementCoordinator(DataUpdateCoordinator):
             "claimed_elsewhere": len(skip),
             # federal registrants found in hass.data (0 when no installed integration holds the registry)
             "federal_registrants": len(federal),
+            # hexes watched because they broadcast a DHS callsign (TROY...) while off the list
+            "detected_by_callsign": len(self.tracker.detections),
             "circle_status": circle_status,
             "hex_status": hex_status,
             "source_backoff": self.poll.backoff.status(),
