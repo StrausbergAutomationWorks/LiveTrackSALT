@@ -17,6 +17,14 @@ What is drawn (Enforcement SSOT section 3.1, decisions A, G, K, O):
     keeps the set in HA storage). Never for a listed hex, a cleared one (found not involved) or a government
     registrant (already drawn by the owner rules). Seen while another integration draws it, it is still
     recorded, so it stays watched when it leaves that circle;
+  * ! ICE AIR'S CALL SIGNS (backlog 313 part 2; Lee 2026-10-29 22:25-23:10): a flight broadcasting `VELUX`,
+    `TYSON` (2 digits) or `TYS` (1-4 digits) on a US hex IS an ICE Air flight (saw-livetrack
+    enforcement_list.ice_air_callsign; VELUX sourced from ICE Flight Monitor). For THAT flight a charter tail
+    says "ICE Air Charter" (no question mark), a DHS-owned (sourced) aircraft keeps its glow and agency, and a
+    tail the list does not know is drawn as a charter and REMEMBERED as one (a synthetic `ice_air_charter`
+    entry, stored with the TROY detections): watched nationwide afterwards, "ICE Air Charter?" between its ICE
+    flights, and listed on the sensor as proposed for the list. A cleared tail flying it is marked for the
+    flight only: the list, not this code, decides whether to reopen it;
   * ! NOT an aircraft another integration already draws (Live Track Aircraft inside its circle,
     decision A): the shared poll's claims, passed in as `skip`, so one aircraft is one marker.
 
@@ -55,6 +63,8 @@ LABEL_DETECTED = "Detected, unconfirmed"
 LABEL_PIA = "Potential PIA"
 # ! THE LIBRARY'S (saw-livetrack 0.2.16, Lee 2026-10-29): Live Track Aircraft prints the same label.
 LABEL_CHARTER = el.CHARTER_LABEL
+# ! While a flight broadcasts ICE Air's call sign (saw-livetrack 0.2.18): the same label, no question mark.
+LABEL_CHARTER_FLIGHT = el.CHARTER_FLIGHT_LABEL
 FLAG_MILITARY = 1
 FLAG_PIA = 4
 MAX_LABEL_CHARS = 22
@@ -111,7 +121,8 @@ class Tracker:
         # ! The cap is a guard rail on the focus area only, nearest first; a listed aircraft is never dropped.
         near.sort(key=lambda r: r["distance_km"])
         for rec in near:
-            if len(out) >= max_aircraft and not (rec.get("enforcement_status") or rec.get("identified_by")):
+            if len(out) >= max_aircraft and not (rec.get("enforcement_status") or rec.get("identified_by")
+                                                 or rec.get("ice_air_flight")):
                 continue
             out[rec["identity"]] = rec
         for obs in listed:
@@ -140,29 +151,51 @@ class Tracker:
             return entry if entry.status in el.WATCHED else None
         det = self.detections.get(hex_id)
         if det is not None:
-            return el.Entry(hex=hex_id, status=el.DETECTED, entry=det["entry"])
+            # TROY detections carry no status (stored before 0.2.18): they are detections. ICE Air's are charters.
+            return el.Entry(hex=hex_id, status=det.get("status", el.DETECTED), entry=det["entry"])
         return None
 
     def _signal(self, reader, obs: Observation, federal: dict[str, dict[str, Any]]) -> None:
         """Record a callsign detection: not on the list in any status, not a government registrant."""
         callsign = (obs.callsign or "").strip().upper()
+        family = el.ice_air_callsign(callsign, obs.identity)
+        if family is not None:
+            if self._known(reader, obs, federal):
+                return                       # listed, cleared or a registrant: the flight is marked in _describe
+            self._remember(obs, "callsign-" + family.lower(), "callsign " + family, callsign, el.CHARTER)
+            return
         for pattern, entry_name, by in CALLSIGN_SIGNALS:
             if not pattern.match(callsign):
                 continue
-            if reader is not None and reader.status(obs.identity) is not None:
-                return                       # sourced, detected or cleared: the list already decides
-            if obs.identity in federal or (self.registry is not None
-                                           and self.registry.lookup_government(obs.identity)):
-                return                       # a government registrant: the owner rules already draw it
-            seen = _iso(obs.observed_at)
-            det = self.detections.get(obs.identity)
-            if det is None:
-                self.detections[obs.identity] = {"entry": entry_name, "detected_by": by, "callsign": callsign,
-                                                 "first_seen": seen, "last_seen": seen}
-                self.detections_added = True
-            else:
-                det["last_seen"], det["callsign"] = seen, callsign
+            if self._known(reader, obs, federal):
+                return
+            self._remember(obs, entry_name, by, callsign, None)
             return
+
+    def _known(self, reader, obs: Observation, federal: dict[str, dict[str, Any]]) -> bool:
+        """On the list in any status (sourced, detected, charter or cleared: the list decides), or a government
+        registrant (the owner rules already draw it)."""
+        if reader is not None and reader.status(obs.identity) is not None:
+            return True
+        return obs.identity in federal or (self.registry is not None
+                                           and bool(self.registry.lookup_government(obs.identity)))
+
+    def _remember(self, obs: Observation, entry_name: str, by: str, callsign: str, status: str | None) -> None:
+        """Store a callsign detection; status None is a detection (TROY), el.CHARTER an ICE Air charter."""
+        seen = _iso(obs.observed_at)
+        det = self.detections.get(obs.identity)
+        if det is None:
+            det = {"entry": entry_name, "detected_by": by, "callsign": callsign, "first_seen": seen, "last_seen": seen}
+            if status is not None:
+                det["status"] = status
+            self.detections[obs.identity] = det
+            self.detections_added = True
+            return
+        det["last_seen"], det["callsign"] = seen, callsign
+        if status == el.CHARTER and det.get("status") != el.CHARTER:
+            # a TROY detection later seen flying ICE Air's call sign: it is a charter from then on
+            det.update({"entry": entry_name, "detected_by": by, "status": el.CHARTER})
+            self.detections_added = True
 
     def record(self, obs: Observation, entry: el.Entry | None,
                fed: dict[str, Any] | None = None) -> dict[str, Any] | None:
@@ -284,14 +317,23 @@ class Tracker:
             out["operator_short"] = entry.agency
         detected = entry is not None and entry.status == el.DETECTED
         charter = entry is not None and entry.status == el.CHARTER
+        # ! ICE AIR'S CALL SIGN ON THIS FLIGHT (backlog 313 part 2): per flight, never stored here.
+        flight = el.ice_air_callsign(obs.callsign, obs.identity)
+        if flight is not None:
+            out["ice_air_flight"] = flight
+        # A tail nothing else draws as enforcement (a cleared one, or unknown and not yet remembered), flying it:
+        # drawn as a charter for this flight. A government registrant keeps the owner rules (DHS's own: its glow).
+        flight_charter = flight is not None and entry is None and gov is None and not registrant
+        if flight_charter:
+            out["ice_air_charter_flight"] = True
         # ! THE HOVER'S " · <status>" (Lee 2026-10-29 13:45; 06_MAP_CONTRACT.md D4b rule 12): what the list holds,
         # where no agency is named. A charter always says so; a detection only when nothing names an agency.
-        if charter:
-            out["operator_short"] = LABEL_CHARTER
+        if charter or flight_charter:
+            out["operator_short"] = LABEL_CHARTER_FLIGHT if flight is not None else LABEL_CHARTER
         elif detected and not out.get("operator_short"):
             out["operator_short"] = LABEL_PIA if out.get("identity_hidden") else LABEL_DETECTED
         sourced = (entry is not None and entry.status == el.SOURCED) or registrant
-        if entry is not None and entry.status == el.DETECTED and obs.identity in self.detections:
+        if entry is not None and entry.status in (el.DETECTED, el.CHARTER) and obs.identity in self.detections:
             out["detected_by"] = self.detections[obs.identity]["detected_by"]
         if entry is not None:
             out["enforcement_status"] = entry.status
@@ -310,8 +352,9 @@ class Tracker:
             lights = False
         elif sourced:
             lights = lib.LIGHTS_GLOW
-        elif charter:
-            # ! An ICE Air charter: the steady glow, never the flash (Lee 2026-10-29 00:37, look C4).
+        elif charter or flight_charter:
+            # ! An ICE Air charter: the steady glow, never the flash (Lee 2026-10-29 00:37, look C4); on an ICE Air
+            # flight too (Lee 22:56: "If it's a charter... charter glow").
             lights = lib.LIGHTS_CHARTER
         else:
             lights = lib.lights_for(category)
@@ -326,8 +369,8 @@ def marker_label(obs: Observation, rec: dict[str, Any]) -> str:
     status = rec.get("enforcement_status")
     if status == el.DETECTED:
         return LABEL_PIA if rec.get("identity_hidden") else LABEL_DETECTED
-    if status == el.CHARTER:
-        return LABEL_CHARTER
+    if status == el.CHARTER or rec.get("ice_air_charter_flight"):
+        return LABEL_CHARTER_FLIGHT if rec.get("ice_air_flight") else LABEL_CHARTER
     if status == el.SOURCED and rec.get("enforcement_agency"):
         return _shorten(rec["enforcement_agency"])
     callsign = (obs.callsign or "").strip()

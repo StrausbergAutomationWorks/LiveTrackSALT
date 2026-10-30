@@ -115,8 +115,11 @@ class EnforcementCoordinator(DataUpdateCoordinator):
             "claimed_elsewhere": len(skip),
             # federal registrants found in hass.data (0 when no installed integration holds the registry)
             "federal_registrants": len(federal),
-            # hexes watched because they broadcast a DHS callsign (TROY...) while off the list
+            # hexes watched because they broadcast a DHS callsign (TROY...) or ICE Air's (VELUX...) while off the list
             "detected_by_callsign": len(self.tracker.detections),
+            # ! those seen flying ICE Air's call sign: proposed for the list (Lee 2026-10-29 22:25), for its review
+            "proposed_for_list": sorted("%s %s" % (h.upper(), d.get("callsign", ""))
+                                        for h, d in self.tracker.detections.items() if d.get("status") == el.CHARTER),
             "circle_status": circle_status,
             "hex_status": hex_status,
             "source_backoff": self.poll.backoff.status(),

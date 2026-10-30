@@ -349,7 +349,7 @@ class TestBoundaries(unittest.TestCase):
         self.assertIn('rec["feed"] = self.circle_source', coord)
         geo = dict(self._code())["geo_location.py"]
         self.assertIn('LOL_ATTRIBUTION if rec.get("feed") == "adsb.lol" else FEED_ATTRIBUTION', geo)
-        self.assertIn('"saw-livetrack>=0.2.17,<0.3"', dict(self._code())["manifest.json"])
+        self.assertIn('"saw-livetrack>=0.2.18,<0.3"', dict(self._code())["manifest.json"])
 
     def test_the_registry_is_loaded_refreshed_and_passed(self):
         init = dict(self._code())["__init__.py"]
@@ -428,6 +428,127 @@ class TestCharter(unittest.TestCase):
             coord = fh.read()
         self.assertIn("self.reader.hexes(*el.WATCHED)", coord)
         self.assertEqual(CHARTER_LIST.hexes(*el.WATCHED), frozenset({"a00808", "a2c4e0"}))
+
+
+class TestIceAirCallsign(unittest.TestCase):
+    """Backlog 313 part 2 (Lee 2026-10-29 22:25-23:10): ICE Air's call signs mark THE FLIGHT."""
+
+    def run_(self, circle, listed, t=None, lst=CHARTER_LIST, skip=frozenset()):
+        t = t or tracker.Tracker(CENTRE[0], CENTRE[1], 56.0, REG)
+        return t, t.build(circle, listed, lst, skip, 250)
+
+    def jet(self, h, callsign, **kw):
+        return obs(h, emitter_category="A3", type_code="A320", callsign=callsign, **kw)
+
+    def test_listed_charter_flying_velux_loses_the_question(self):
+        t, out = self.run_([self.jet("a2c4e0", "VELUX46")], [])
+        rec = out["a2c4e0"]
+        self.assertEqual(rec["marker_label"], "ICE Air Charter")
+        self.assertEqual(rec["operator_short"], "ICE Air Charter")
+        self.assertEqual(rec["ice_air_flight"], "VELUX")
+        self.assertIn("l=c", rec["entity_picture"])
+        self.assertEqual(t.detections, {})            # the list already knows it
+
+    def test_a_carrier_designator_is_not_evidence(self):
+        _, out = self.run_([self.jet("a2c4e0", "GXA6276")], [])
+        self.assertEqual(out["a2c4e0"]["marker_label"], "ICE Air Charter?")
+        self.assertNotIn("ice_air_flight", out["a2c4e0"])
+
+    def test_dhs_own_aircraft_keeps_its_glow_and_agency(self):
+        t, out = self.run_([self.jet("a00808", "VELUX35")], [])
+        rec = out["a00808"]
+        self.assertEqual(rec["marker_label"], "DHS")
+        self.assertIn("l=g", rec["entity_picture"])
+        self.assertEqual(rec["ice_air_flight"], "VELUX")
+        self.assertEqual(t.detections, {})
+
+    def test_unlisted_tail_is_a_charter_remembered_and_watched(self):
+        t, out = self.run_([self.jet("aa1111", "VELUX32")], [])
+        rec = out["aa1111"]
+        self.assertEqual(rec["enforcement_status"], el.CHARTER)
+        self.assertEqual(rec["marker_label"], "ICE Air Charter")
+        self.assertEqual(rec["detected_by"], "callsign VELUX")
+        self.assertIn("l=c", rec["entity_picture"])
+        self.assertNotIn("d=1", rec["entity_picture"])
+        det = t.detections["aa1111"]
+        self.assertEqual((det["status"], det["entry"], det["callsign"]), (el.CHARTER, "callsign-velux", "VELUX32"))
+        self.assertTrue(t.detections_added)
+        # its next flight, on the carrier's own designator: still watched, the question mark back
+        t, out = self.run_([self.jet("aa1111", "BBQ8252", t=1_800_000_060)], [], t=t)
+        self.assertEqual(out["aa1111"]["marker_label"], "ICE Air Charter?")
+        self.assertEqual(out["aa1111"]["operator_short"], "ICE Air Charter?")
+        self.assertNotIn("ice_air_flight", out["aa1111"])
+        # and nationwide, from the hex round, far outside the focus area
+        t, out = self.run_([], [self.jet("aa1111", None, t=1_800_000_120, **FAR)], t=t)
+        self.assertIn("aa1111", out)
+        self.assertTrue(out["aa1111"]["outside_radius"])
+
+    def test_tyson_and_tys_too(self):
+        for h, cs, fam in (("aa2222", "TYSON43", "TYSON"), ("aa3333", "TYS44", "TYS")):
+            t, out = self.run_([self.jet(h, cs)], [])
+            self.assertEqual(out[h]["marker_label"], "ICE Air Charter", cs)
+            self.assertEqual(t.detections[h]["detected_by"], "callsign " + fam)
+
+    def test_never_trumps_757_nor_a_foreign_tys(self):
+        for h, cs in (("aa3410", "TYSON1"), ("aa3410", "TYSON12"), ("e48a31", "TYS44")):
+            t, out = self.run_([self.jet(h, cs)], [])
+            self.assertEqual(t.detections, {}, cs)
+            self.assertNotIn("ice_air_flight", out[h])
+            self.assertNotIn("enforcement_status", out[h])
+
+    def test_cleared_tail_marked_for_the_flight_only(self):
+        # a US hex: LIST's cleared def456 is outside A00000-AFFFFF, so the rule ignores it (also right)
+        cleared = reader([{"hex": "aaf29f", "status": "cleared", "entry": "avelo-ice-charter-aaf29f"}])
+        t, out = self.run_([self.jet("aaf29f", "VELUX12")], [], lst=cleared)
+        rec = out["aaf29f"]
+        self.assertEqual(t.detections, {})            # the list decides whether to reopen it
+        self.assertTrue(rec["ice_air_charter_flight"])
+        self.assertEqual(rec["marker_label"], "ICE Air Charter")
+        self.assertIn("l=c", rec["entity_picture"])
+        self.assertNotIn("enforcement_status", rec)
+
+    def test_an_ice_air_flight_is_kept_past_the_cap(self):
+        cleared = reader([{"hex": "aaf29f", "status": "cleared", "entry": "avelo-ice-charter-aaf29f"}])
+        crowd = [obs("b%05x" % i, lat=39.818, lon=-84.050) for i in range(3)]
+        t = tracker.Tracker(CENTRE[0], CENTRE[1], 56.0, REG)
+        out = t.build(crowd + [self.jet("aaf29f", "VELUX12", lat=40.122, lon=-84.050)], [], cleared, frozenset(), 2)
+        self.assertIn("aaf29f", out)
+        self.assertEqual(len(out), 3)
+
+    def test_unlisted_dhs_registrant_keeps_the_owner_rules(self):
+        t, out = self.run_([self.jet("a0eeee", "VELUX35")], [])      # REG: DEPARTMENT OF HOMELAND SECURITY
+        self.assertEqual(t.detections, {})
+        self.assertNotIn("ice_air_charter_flight", out["a0eeee"])
+        self.assertEqual(out["a0eeee"]["ice_air_flight"], "VELUX")
+
+    def test_troy_detection_later_seen_as_velux_becomes_a_charter(self):
+        t, _ = self.run_([self.jet("aa4444", "TROY705")], [])
+        self.assertNotIn("status", t.detections["aa4444"])
+        t.detections_added = False
+        t, out = self.run_([self.jet("aa4444", "VELUX40", t=1_800_000_060)], [], t=t)
+        self.assertEqual(t.detections["aa4444"]["status"], el.CHARTER)
+        self.assertTrue(t.detections_added)
+        self.assertEqual(out["aa4444"]["marker_label"], "ICE Air Charter")
+
+    def test_a_stored_troy_detection_without_status_stays_a_detection(self):
+        t = tracker.Tracker(CENTRE[0], CENTRE[1], 56.0, REG)
+        t.detections["aa5555"] = {"entry": "callsign-troy", "detected_by": "callsign TROY", "callsign": "TROY1",
+                                  "first_seen": "x", "last_seen": "x"}       # as stored before 0.2.18
+        _, out = self.run_([], [self.jet("aa5555", "TROY1", **FAR)], t=t)
+        self.assertEqual(out["aa5555"]["enforcement_status"], el.DETECTED)
+
+    def test_remembered_even_inside_another_integrations_circle(self):
+        t, out = self.run_([self.jet("aa6666", "VELUX55")], [], skip=frozenset({"aa6666"}))
+        self.assertNotIn("aa6666", out)
+        self.assertEqual(t.detections["aa6666"]["status"], el.CHARTER)
+
+    def test_the_sensor_lists_the_proposals(self):
+        with open(os.path.join(COMP, "coordinator.py"), encoding="utf-8") as fh:
+            coord = fh.read()
+        with open(os.path.join(COMP, "sensor.py"), encoding="utf-8") as fh:
+            sensor = fh.read()
+        self.assertIn('"proposed_for_list"', coord)
+        self.assertIn('"proposed_for_list"', sensor)
 
 
 if __name__ == "__main__":
