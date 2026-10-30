@@ -18,7 +18,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, FEED_ATTRIBUTION, LIST_ATTRIBUTION, LOL_ATTRIBUTION
+from .const import (
+    AIS_ATTRIBUTION, DOMAIN, FEED_ATTRIBUTION, LIST_ATTRIBUTION, LOL_ATTRIBUTION, VESSEL_LIST_ATTRIBUTION,
+)
 from .coordinator import EnforcementCoordinator
 
 _PASSTHROUGH = (
@@ -31,6 +33,15 @@ _PASSTHROUGH = (
     "altitude_m", "speed_kmh", "vertical_rate_ms", "heading_deg", "course_deg",
     "last_seen", "observed_at", "previous_latitude", "previous_longitude",
     "previous_observed_at", "segment_duration_s",
+)
+
+# ! A VESSEL (backlog 315): what the card needs (06_MAP_CONTRACT.md D10 map_layer water, D11 object_ids.mmsi),
+# what the list says, and the AIS fix.
+_VESSEL_PASSTHROUGH = (
+    "map_layer", "object_ids", "identity", "marker_label", "vessel_name", "list_name", "hull",
+    "enforcement_status", "enforcement_agency", "enforcement_entry", "theatre",
+    "icon_rotatable", "icon_rotation_deg", "icon_rotation_basis", "speed_kmh", "course_deg", "heading_deg",
+    "observed_at", "previous_latitude", "previous_longitude", "previous_observed_at", "segment_duration_s",
 )
 
 
@@ -54,6 +65,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
 
     _sync()
     entry.async_on_unload(coordinator.async_add_listener(_sync))
+
+    live_vessels: dict[str, EnforcementVessel] = {}
+
+    @callback
+    def _sync_vessels() -> None:
+        current = set((coordinator.data or {}).get("vessels") or {})
+        new = [m for m in current if m not in live_vessels]
+        if new:
+            entities = [EnforcementVessel(coordinator, m) for m in new]
+            live_vessels.update(zip(new, entities))
+            async_add_entities(entities)
+        # ! A vessel that leaves its theatre, or is not heard for 30 min, is REMOVED: nothing to keep.
+        for gone in [m for m in live_vessels if m not in current]:
+            entity = live_vessels.pop(gone)
+            entity.hass.async_create_task(entity.async_remove(force_remove=True))
+
+    _sync_vessels()
+    entry.async_on_unload(coordinator.async_add_listener(_sync_vessels))
 
 
 class EnforcementAircraft(GeolocationEvent):
@@ -110,6 +139,63 @@ class EnforcementAircraft(GeolocationEvent):
         if not rec:
             return {}
         return {k: rec[k] for k in _PASSTHROUGH if k in rec}
+
+    async def async_added_to_hass(self) -> None:
+        self.async_on_remove(self._coordinator.async_add_listener(self.async_write_ha_state))
+
+
+class EnforcementVessel(GeolocationEvent):
+    """A vessel on the EnforcementVessels list, inside a theatre (vessels.py). No unique_id, as the aircraft."""
+    _attr_should_poll = False
+    _attr_unit_of_measurement = "km"
+    _attr_source = DOMAIN
+
+    def __init__(self, coordinator: EnforcementCoordinator, mmsi: str) -> None:
+        self._coordinator = coordinator
+        self._mmsi = mmsi
+        # ! "SALT vessel <MMSI>", so the id is geo_location.salt_vessel_<mmsi>: never Live Track Ships' ids.
+        self._attr_name = f"SALT vessel {mmsi}"
+
+    def _rec(self) -> dict[str, Any] | None:
+        return ((self._coordinator.data or {}).get("vessels") or {}).get(self._mmsi)
+
+    @property
+    def attribution(self) -> str:
+        return AIS_ATTRIBUTION + "; " + VESSEL_LIST_ATTRIBUTION
+
+    @property
+    def icon(self) -> str:
+        return (self._rec() or {}).get("icon") or "mdi:ferry"
+
+    @property
+    def entity_picture(self) -> str | None:
+        return (self._rec() or {}).get("entity_picture")
+
+    @property
+    def available(self) -> bool:
+        return self._coordinator.last_update_success and self._rec() is not None
+
+    @property
+    def latitude(self) -> float | None:
+        rec = self._rec()
+        return rec["latitude"] if rec else None
+
+    @property
+    def longitude(self) -> float | None:
+        rec = self._rec()
+        return rec["longitude"] if rec else None
+
+    @property
+    def distance(self) -> float | None:
+        rec = self._rec()
+        return rec["distance_km"] if rec else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        rec = self._rec()
+        if not rec:
+            return {}
+        return {k: rec[k] for k in _VESSEL_PASSTHROUGH if k in rec}
 
     async def async_added_to_hass(self) -> None:
         self.async_on_remove(self._coordinator.async_add_listener(self.async_write_ha_state))

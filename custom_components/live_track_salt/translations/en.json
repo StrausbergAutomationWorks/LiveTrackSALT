@@ -8,7 +8,8 @@
           "location": "Centre of the focus area",
           "radius_km": "Radius of the focus area (km)",
           "max_aircraft": "Most aircraft shown in the focus area (listed aircraft are always shown)",
-          "nationwide": "Show listed aircraft outside the focus area"
+          "nationwide": "Show listed aircraft outside the focus area",
+          "aisstream_api_key": "aisstream.io API key, for listed vessels (optional; free at aisstream.io)"
         }
       }
     },
@@ -27,7 +28,8 @@
           "location": "Centre of the focus area",
           "radius_km": "Radius of the focus area (km)",
           "max_aircraft": "Most aircraft shown in the focus area (listed aircraft are always shown)",
-          "nationwide": "Show listed aircraft outside the focus area"
+          "nationwide": "Show listed aircraft outside the focus area",
+          "aisstream_api_key": "aisstream.io API key, for listed vessels (optional; free at aisstream.io)"
         }
       }
     },

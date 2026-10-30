@@ -16,7 +16,8 @@ from homeassistant.helpers.selector import LocationSelector, LocationSelectorCon
 
 from .centre import from_form, to_form
 from .const import (
-    CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_MAX_AIRCRAFT, CONF_NATIONWIDE, CONF_RADIUS_KM,
+    CONF_AISSTREAM_KEY, CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_MAX_AIRCRAFT, CONF_NATIONWIDE,
+    CONF_RADIUS_KM,
     DEFAULT_MAX_AIRCRAFT, DEFAULT_NATIONWIDE, DEFAULT_RADIUS_KM, DOMAIN, MAX_MAX_AIRCRAFT, MAX_RADIUS_KM,
     MIN_MAX_AIRCRAFT, MIN_RADIUS_KM,
 )
@@ -38,6 +39,8 @@ def _schema(defaults: dict[str, Any], hass) -> vol.Schema:
         vol.Required(CONF_MAX_AIRCRAFT, default=defaults.get(CONF_MAX_AIRCRAFT, DEFAULT_MAX_AIRCRAFT)):
             vol.All(vol.Coerce(int), vol.Range(min=MIN_MAX_AIRCRAFT, max=MAX_MAX_AIRCRAFT)),
         vol.Required(CONF_NATIONWIDE, default=defaults.get(CONF_NATIONWIDE, DEFAULT_NATIONWIDE)): bool,
+        # ! OPTIONAL (backlog 315): the user's own aisstream.io key; without it SALT draws no vessels.
+        vol.Optional(CONF_AISSTREAM_KEY, default=defaults.get(CONF_AISSTREAM_KEY, "")): str,
     })
 
 

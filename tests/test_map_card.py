@@ -143,7 +143,7 @@ class Shipped(unittest.TestCase):
         self.assertIn("http", m["dependencies"])
         self.assertIn("lovelace", m["after_dependencies"])
         req = [r for r in m["requirements"] if r.startswith("saw-livetrack")]
-        self.assertEqual(req, ["saw-livetrack>=0.2.18,<0.3"])   # 0.2.8 brought map_card
+        self.assertEqual(req, ["saw-livetrack>=0.2.19,<0.3"])   # 0.2.8 brought map_card
         keys = list(m)
         self.assertEqual(keys[:2], ["domain", "name"])
         self.assertEqual(keys[2:], sorted(keys[2:]))

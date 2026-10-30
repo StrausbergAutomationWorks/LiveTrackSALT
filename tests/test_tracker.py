@@ -349,7 +349,7 @@ class TestBoundaries(unittest.TestCase):
         self.assertIn('rec["feed"] = self.circle_source', coord)
         geo = dict(self._code())["geo_location.py"]
         self.assertIn('LOL_ATTRIBUTION if rec.get("feed") == "adsb.lol" else FEED_ATTRIBUTION', geo)
-        self.assertIn('"saw-livetrack>=0.2.18,<0.3"', dict(self._code())["manifest.json"])
+        self.assertIn('"saw-livetrack>=0.2.19,<0.3"', dict(self._code())["manifest.json"])
 
     def test_the_registry_is_loaded_refreshed_and_passed(self):
         init = dict(self._code())["__init__.py"]

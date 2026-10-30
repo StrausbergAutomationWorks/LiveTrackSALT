@@ -19,11 +19,21 @@ library and pins the ringed pictures by digest.
 """
 from __future__ import annotations
 
+import os
 import re
 
 from saw_livetrack import aircraft_icons as lib
 
 URL_BASE = "/api/live_track_salt/icon"
+
+# ! THE VESSEL IS THIS INTEGRATION'S OWN KEY (backlog 315, 2026-10-30): Live Track Ships' generic hull at ccebaee,
+# copied byte-exact (ours, MIT), drawn by the library's render() with the aircraft rules' fill and lights
+# (vessels.py). A local key is looked up before the library's; the library has no key of this name.
+LOCAL_ICONS = {"vessel": os.path.join(os.path.dirname(__file__), "icons", "vessel.svg")}
+
+
+def icon_path(key: str) -> str | None:
+    return LOCAL_ICONS.get(key) or lib.icon_path(key)
 
 # ! THE a= REVISION IS THE LIBRARY'S PLUS OURS. The library bumps ART_REV with any change to its
 # pictures; LOCAL_ART_REV bumps with any change to the ring. Both only go up, so the sum does too,
@@ -67,7 +77,7 @@ def render(key: str, tone: str = "default", weight: float = lib.DEFAULT_WEIGHT,
 
     ! A DETECTION IS NEVER LIT: the ring replaces the lights, whatever is asked.
     """
-    path = lib.icon_path(key)
+    path = icon_path(key)
     if path is None:
         return None
     svg = lib.render(path, None, 64, tone, weight, False, False if detected else lights)

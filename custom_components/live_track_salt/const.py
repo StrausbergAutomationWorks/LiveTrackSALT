@@ -23,6 +23,15 @@ USER_AGENT = ("LiveTrackSALT/0.1 "
 
 # The consumer name this integration registers in the shared poll (saw_livetrack.adsb_poll).
 CONSUMER = DOMAIN
+# ! ENFORCEMENT VESSELS (backlog 315, 2026-10-30): the consumer on the instance's shared aisstream client
+# (saw_livetrack.aisstream), its VESSELS connection, and the user's own aisstream.io API key (optional: no key,
+# no vessels). aisstream publishes no terms (Live Track Ships SSOT item 250); credited anyway.
+VESSEL_CONSUMER = DOMAIN + ":vessels"
+CONF_AISSTREAM_KEY = "aisstream_api_key"
+AIS_ATTRIBUTION = "Data: aisstream.io (https://aisstream.io)"
+VESSEL_LIST_ATTRIBUTION = ("Contains information from EnforcementVessels "
+                           "(https://github.com/StrausbergAutomationWorks/EnforcementVessels), "
+                           "which is made available under the Open Database License (ODbL) v1.0")
 
 # --- configuration keys (the focus area is stored as two numbers, as Live Track Aircraft's centre) ---
 CONF_LATITUDE = "latitude"

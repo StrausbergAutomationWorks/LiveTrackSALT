@@ -46,7 +46,8 @@ class FocusArea(unittest.TestCase):
         for name in ("strings.json", os.path.join("translations", "en.json")):
             s = json.loads(src(name))
             for step in (s["config"]["step"]["user"], s["options"]["step"]["init"]):
-                self.assertEqual(set(step["data"]), {"location", "radius_km", "max_aircraft", "nationwide"}, name)
+                self.assertEqual(set(step["data"]), {"location", "radius_km", "max_aircraft", "nationwide",
+                                                      "aisstream_api_key"}, name)
         self.assertEqual(src("strings.json"), src(os.path.join("translations", "en.json")))
 
 

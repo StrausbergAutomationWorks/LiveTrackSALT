@@ -25,6 +25,7 @@ from saw_livetrack import faa_registry as fr
 from .const import CONSUMER, DOMAIN
 from .coordinator import EnforcementCoordinator
 from .shared_map_card import async_offer_map_card, async_withdraw_map_card
+from .vessels import CACHE_NAME as VESSEL_CACHE, STORE_KEY as VESSEL_STORE, shared_list
 from .web import register as register_views
 
 HERE = Path(__file__).parent
@@ -59,13 +60,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # not. Every aircraft fills by the owner rules; the list adds the glow.
     registry = fr.shared(hass.data, hass.config.path(".storage"))
     await registry.load(hass.async_add_executor_job)
-    coordinator = EnforcementCoordinator(hass, entry, poll, reader, registry)
+    # ! ENFORCEMENT VESSELS (backlog 315): the EnforcementVessels list, one reader per instance, and its MMSIs
+    # on the shared aisstream client's VESSELS connection when the user gave an aisstream key.
+    first_vessels = VESSEL_STORE not in hass.data
+    vessel_reader = shared_list(hass.data, hass.config.path(".storage", VESSEL_CACHE))
+    if first_vessels:
+        await hass.async_add_executor_job(vessel_reader.load_cache)
+    coordinator = EnforcementCoordinator(hass, entry, poll, reader, registry, vessel_reader)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
     async def _check_list(_now=None) -> None:
         await reader.refresh(_list_session(hass), hass.async_add_executor_job)
 
     hass.async_create_background_task(_check_list(), "live_track_salt_list")
+
+    async def _check_vessels(_now=None) -> None:
+        await vessel_reader.refresh(_list_session(hass), hass.async_add_executor_job)
+        await coordinator.async_sync_vessels()
+
+    await coordinator.async_sync_vessels()        # a cached list subscribes at once
+    hass.async_create_background_task(_check_vessels(), "live_track_salt_vessels")
+    entry.async_on_unload(async_track_time_interval(hass, _check_vessels, LIST_TICK))
     entry.async_on_unload(async_track_time_interval(hass, _check_list, LIST_TICK))
 
     async def _check_registry(_now=None) -> None:
@@ -84,7 +99,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     not an uninstall (card SSOT 67.6); async_remove_entry does it."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
-        hass.data[DOMAIN].pop(entry.entry_id, None)
+        coordinator = hass.data[DOMAIN].pop(entry.entry_id, None)
+        # Its MMSIs leave the shared aisstream client; the last consumer of a connection closes it.
+        if coordinator is not None:
+            await coordinator.async_stop_vessels()
         # Its hexes leave the union round and its claims go, so Live Track Aircraft stops skipping them.
         poll = hass.data.get(ap.STORE_KEY)
         if poll is not None:
