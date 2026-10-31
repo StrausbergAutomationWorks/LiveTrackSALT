@@ -192,6 +192,8 @@ class Tracker(unittest.TestCase):
         self.assertEqual(rec["theatre"], "Florida Straits")
         self.assertEqual((rec["vessel_name"], rec["list_name"], rec["hull"]), ("CGC ACTIVE", "USCGC Active", "WMEC 618"))
         self.assertEqual(rec["marker_label"], "USCG")
+        # D4b rule 14: the hover reads "USCGC Active · USCG".
+        self.assertEqual((rec["name"], rec["operator_short"]), ("USCGC Active", "USCG"))
         self.assertEqual((rec["icon_rotation_deg"], rec["icon_rotation_basis"], rec["icon_rotatable"]),
                          (272, "heading", True))
         self.assertEqual(rec["observed_at"], "2026-10-30T09:00:00Z")
@@ -202,6 +204,34 @@ class Tracker(unittest.TestCase):
     def test_label_falls_back_to_agency(self):
         self.t.deliver(obs("338926402", 24.5, -81.8))
         self.assertEqual(self.t.build(self.r, pic)[0]["338926402"]["marker_label"], "US Coast Guard")
+
+    def test_hover_agency_falls_back_to_the_agency(self):
+        self.t.deliver(obs("338926402", 24.5, -81.8, name="CG RICHARD ETHERIDGE"))
+        rec = self.t.build(self.r, pic)[0]["338926402"]
+        self.assertEqual((rec["name"], rec["operator_short"]), ("USCGC Richard Etheridge", "US Coast Guard"))
+
+    def _one(self, row, name):
+        r = V.VesselList(os.path.join(tempfile.mkdtemp(), V.CACHE_NAME))
+        r._install(doc(vessels=[dict({"mmsi": "367000001", "status": "sourced"}, **row)]))
+        self.t.deliver(obs("367000001", 24.5, -81.8, name=name))
+        return self.t.build(r, pic)[0]["367000001"]
+
+    def test_hover_name_is_the_ais_name_when_the_list_has_none(self):
+        rec = self._one({"agency": "US Coast Guard", "entry": "uscg-active"}, "  CG NONAME ")
+        self.assertEqual((rec["name"], rec["operator_short"]), ("CG NONAME", "USCG"))
+
+    def test_hover_omits_what_is_unknown(self):
+        rec = self._one({"name": "   "}, None)
+        self.assertNotIn("name", rec)
+        self.assertNotIn("operator_short", rec)
+        self.assertEqual(rec["marker_label"], "Listed vessel")
+
+    def test_hover_agency_at_most_22_characters(self):
+        rec = self._one({"name": "X", "agency": "Customs and Border Protection Air and Marine"}, None)
+        self.assertEqual(rec["operator_short"], "Customs and Border Pr…")
+        self.assertEqual(len(rec["operator_short"]), 22)
+        rec = self._one({"name": "X", "agency": "A" * 22}, None)
+        self.assertEqual(rec["operator_short"], "A" * 22)
 
     def test_rotation(self):
         self.t.deliver(obs(course=90.0, speed=10.0))
@@ -259,6 +289,8 @@ class Wiring(unittest.TestCase):
     def test_entity_name_and_unload(self):
         geo = source("geo_location.py")
         self.assertIn('self._attr_name = f"SALT vessel {mmsi}"', geo)
+        passthrough = geo[geo.index("_VESSEL_PASSTHROUGH = ("):geo.index("async def async_setup_entry")]
+        self.assertIn('"name", "operator_short"', passthrough)
         self.assertIn("await coordinator.async_stop_vessels()", source("__init__.py"))
 
     def test_key_is_optional(self):

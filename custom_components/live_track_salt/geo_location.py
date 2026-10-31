@@ -39,6 +39,8 @@ _PASSTHROUGH = (
 # what the list says, and the AIS fix.
 _VESSEL_PASSTHROUGH = (
     "map_layer", "object_ids", "identity", "marker_label", "vessel_name", "list_name", "hull",
+    # D4b rule 14: the hover's "USCGC Benjamin Bottoms · USCG" (vessels.py).
+    "name", "operator_short",
     "enforcement_status", "enforcement_agency", "enforcement_entry", "theatre",
     "icon_rotatable", "icon_rotation_deg", "icon_rotation_basis", "speed_kmh", "course_deg", "heading_deg",
     "observed_at", "previous_latitude", "previous_longitude", "previous_observed_at", "segment_duration_s",

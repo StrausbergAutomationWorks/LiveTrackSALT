@@ -392,4 +392,24 @@ class VesselTracker:
         label = (v.short or v.agency or "Listed vessel").strip()
         rec["marker_label"] = (label if len(label) <= MAX_LABEL_CHARS
                                else label[: MAX_LABEL_CHARS - 1].rstrip() + "…")
+        # ! THE HOVER (06_MAP_CONTRACT.md D4b rule 14; Lee 2026-10-30 21:24, "the list name with the agency"): the
+        # card writes "<name> · <operator_short>", "USCGC Benjamin Bottoms · USCG". The list's name, else what the
+        # vessel broadcasts; the agency as the marker gives it, at most 22 characters (rule 12). Omitted when
+        # unknown (rule 8): no "Listed vessel" here, which is the marker's word, not an agency.
+        name = _text(v.name) or _text(obs.name)
+        if name:
+            rec["name"] = name
+        op = _text(v.short) or _text(v.agency)
+        if op:
+            rec["operator_short"] = (op if len(op) <= OPERATOR_SHORT_MAX
+                                     else op[: OPERATOR_SHORT_MAX - 1].rstrip() + "…")
         return rec
+
+
+# The longest agency on the hover's first line (06_MAP_CONTRACT.md D4b rule 12).
+OPERATOR_SHORT_MAX = 22
+
+
+def _text(value) -> str:
+    """A non-blank string, stripped, else ""."""
+    return value.strip() if isinstance(value, str) else ""
