@@ -27,6 +27,9 @@ _PASSTHROUGH = (
     "map_layer", "identity", "marker_label", "callsign", "aircraft_type", "registration",
     "list_registration", "operator", "operator_short", "airline_short", "operator_name_source", "operator_category", "operator_state",
     "identified_by",
+    # Backlog 313 part 2: the ICE Air call-sign family while the flight broadcasts it (VELUX, TYSON, TYS), and True on an
+    # unknown tail drawn as a charter for that flight (tracker.py). Published only while the record holds them.
+    "ice_air_flight", "ice_air_charter_flight",
     "enforcement_status", "enforcement_agency", "enforcement_entry",
     "is_military", "identity_hidden", "outside_radius", "emitter_category",
     "icon_rotatable", "icon_rotation_deg", "icon_rotation_basis", "squawk",

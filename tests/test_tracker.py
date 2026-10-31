@@ -361,6 +361,19 @@ class TestBoundaries(unittest.TestCase):
         self.assertIn("self.registry.gov.federal_law_enforcement_hexes()", coord)
         self.assertIn("Tracker(self.latitude, self.longitude, self.radius_km, registry)", coord)
 
+    def test_the_ice_air_flight_flags_are_published(self):
+        # 2026-10-31 (Lee 01:45): measured 2026-10-30, the record held them and the entity did not.
+        import ast
+        geo = dict(self._code())["geo_location.py"]
+        tree = ast.parse(geo)
+        names = next(ast.literal_eval(n.value) for n in tree.body if isinstance(n, ast.Assign)
+                     and getattr(n.targets[0], "id", "") == "_PASSTHROUGH")
+        self.assertIn("ice_air_flight", names)
+        self.assertIn("ice_air_charter_flight", names)
+        tracker = dict(self._code())["tracker.py"]
+        for key in re.findall(r'out\["(ice_air_\w+)"\]\s*=', tracker):
+            self.assertIn(key, names, key)
+
     def test_never_imports_live_track_aircraft(self):
         for name, text in self._code():
             self.assertIsNone(re.search(r"^\s*(from|import)\s+[.\w]*live_track_aircraft\b", text, re.M), name)
