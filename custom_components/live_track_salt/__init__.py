@@ -20,12 +20,12 @@ from homeassistant.helpers.event import async_track_time_interval
 
 from saw_livetrack import adsb_poll as ap
 from saw_livetrack import enforcement_list as el
+from saw_livetrack import enforcement_vessels as ev
 from saw_livetrack import faa_registry as fr
 
 from .const import CONSUMER, DOMAIN
 from .coordinator import EnforcementCoordinator
 from .shared_map_card import async_offer_map_card, async_withdraw_map_card
-from .vessels import CACHE_NAME as VESSEL_CACHE, STORE_KEY as VESSEL_STORE, shared_list
 from .web import register as register_views
 
 HERE = Path(__file__).parent
@@ -62,8 +62,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await registry.load(hass.async_add_executor_job)
     # ! ENFORCEMENT VESSELS (backlog 315): the EnforcementVessels list, one reader per instance, and its MMSIs
     # on the shared aisstream client's VESSELS connection when the user gave an aisstream key.
-    first_vessels = VESSEL_STORE not in hass.data
-    vessel_reader = shared_list(hass.data, hass.config.path(".storage", VESSEL_CACHE))
+    # The reader is saw_livetrack.enforcement_vessels since 0.2.20; Live Track Ships finds the same one.
+    first_vessels = ev.STORE_KEY not in hass.data
+    vessel_reader = ev.shared_list(hass.data, hass.config.path(".storage", ev.CACHE_NAME))
     if first_vessels:
         await hass.async_add_executor_job(vessel_reader.load_cache)
     coordinator = EnforcementCoordinator(hass, entry, poll, reader, registry, vessel_reader)

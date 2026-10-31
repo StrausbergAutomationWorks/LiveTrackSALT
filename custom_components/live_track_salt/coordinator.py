@@ -23,6 +23,7 @@ from saw_livetrack import adsb_poll as ap
 from saw_livetrack import aisstream as ais_client
 from saw_livetrack import enforcement_list as el
 from saw_livetrack import faa_registry as fr
+from saw_livetrack.enforcement_vessels import VesselList
 
 from . import icons
 from .const import (
@@ -31,7 +32,7 @@ from .const import (
     USER_AGENT, VESSEL_CONSUMER,
 )
 from .tracker import Tracker
-from .vessels import VesselList, VesselTracker
+from .vessels import VesselTracker
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -153,7 +154,11 @@ class EnforcementCoordinator(DataUpdateCoordinator):
         in_circle = {o.identity for o in self._circle}
         for hex_id, rec in aircraft.items():
             rec["feed"] = self.circle_source if hex_id in in_circle and not rec.get("outside_radius") else ap.FI
-        vessels, vessels_outside = (self.vessels.build(self.vessel_reader, icons.picture_url)
+        # ! ONE VESSEL, ONE MARKER (backlog 315 task 5): what another consumer claims on the shared aisstream client
+        # (Live Track Ships, which draws a listed vessel itself) is left to it. SALT claims nothing for vessels.
+        vessel_skip = (ais_client.shared(self.hass.data).claimed_by_others(VESSEL_CONSUMER)
+                       if self.vessel_reader is not None else frozenset())
+        vessels, vessels_outside = (self.vessels.build(self.vessel_reader, icons.picture_url, vessel_skip)
                                     if self.vessel_reader is not None else ({}, 0))
         return {
             "aircraft": aircraft,
@@ -161,6 +166,8 @@ class EnforcementCoordinator(DataUpdateCoordinator):
             "vessels_shown": len(vessels),
             # listed vessels heard outside every theatre: ordinary Coast Guard work there, not drawn
             "vessels_outside_theatres": vessels_outside,
+            # listed vessels another integration draws (Live Track Ships), left to it
+            "vessels_claimed_elsewhere": self.vessels.claimed_elsewhere,
             "vessel_list": self.vessel_reader.summary if self.vessel_reader is not None else "no list",
             "vessel_feed": self._vessel_connection(),
             "listed_shown": sum(1 for r in aircraft.values() if r.get("enforcement_status")),

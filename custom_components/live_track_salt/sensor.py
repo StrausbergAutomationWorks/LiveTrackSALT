@@ -16,7 +16,8 @@ from .const import ATTRIBUTION, DOMAIN
 from .coordinator import EnforcementCoordinator
 
 _ATTRS = ("listed_shown", "outside_radius", "claimed_elsewhere", "federal_registrants", "detected_by_callsign",
-          "proposed_for_list", "vessels_shown", "vessels_outside_theatres", "vessel_list", "vessel_feed",
+          "proposed_for_list", "vessels_shown", "vessels_outside_theatres", "vessels_claimed_elsewhere",
+          "vessel_list", "vessel_feed",
           "circle_status", "hex_status", "source_backoff", "list", "radius_km", "max_aircraft", "nationwide")
 
 
