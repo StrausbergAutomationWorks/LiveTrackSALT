@@ -29,9 +29,8 @@ CONSUMER = DOMAIN
 VESSEL_CONSUMER = DOMAIN + ":vessels"
 CONF_AISSTREAM_KEY = "aisstream_api_key"
 AIS_ATTRIBUTION = "Data: aisstream.io (https://aisstream.io)"
-VESSEL_LIST_ATTRIBUTION = ("Contains information from EnforcementVessels "
-                           "(https://github.com/StrausbergAutomationWorks/EnforcementVessels), "
-                           "which is made available under the Open Database License (ODbL) v1.0")
+# The list's ODbL line is the library's since saw-livetrack 0.2.21 (the same text; Live Track Ships credits by it).
+from saw_livetrack.enforcement_vessels import LIST_ATTRIBUTION as VESSEL_LIST_ATTRIBUTION  # noqa: E402
 
 # --- configuration keys (the focus area is stored as two numbers, as Live Track Aircraft's centre) ---
 CONF_LATITUDE = "latitude"

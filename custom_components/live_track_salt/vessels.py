@@ -26,7 +26,9 @@ import math
 import time
 from typing import Any
 
-from saw_livetrack.enforcement_vessels import CLEARED, SOURCED, Theatre, Vessel, VesselList, norm_mmsi
+from saw_livetrack.enforcement_vessels import (
+    CLEARED, LIST_TONE, Theatre, Vessel, VesselList, attributes, label, lights, norm_mmsi,
+)
 
 # ! A VESSEL NOT HEARD FOR 30 MINUTES IS GONE from the map, Live Track Ships' window (its SSOT item 5).
 STALE_S = 30 * 60
@@ -36,7 +38,6 @@ MAX_SEGMENT_S = 600
 COURSE_MIN_KMH = 2 * 1.852
 WEIGHT = 0.80               # aircraft_icons.DEFAULT_WEIGHT: every cutter one size, as an aircraft with no category
 VESSEL_KEY = "vessel"       # the picture: icons.py
-MAX_LABEL_CHARS = 22        # tracker.MAX_LABEL_CHARS: one label rule for aircraft and vessels
 
 
 # --------------------------------------------------------------------------------------------------------------
@@ -114,9 +115,6 @@ class VesselTracker:
             # 10_SEED/06_MAP_CONTRACT.md D10 and D11: a vessel is on the water; its MMSI is its identity.
             "map_layer": "water",
             "object_ids": {"mmsi": v.mmsi},
-            "enforcement_status": v.status,
-            "enforcement_agency": v.agency,
-            "enforcement_entry": v.entry,
             "theatre": theatre.name,
             "observed_at": _iso(obs.observed_at),
             "feed": "aisstream",
@@ -124,10 +122,11 @@ class VesselTracker:
         }
         if obs.name:
             rec["vessel_name"] = obs.name
-        if v.name:
-            rec["list_name"] = v.name
-        if v.hull:
-            rec["hull"] = v.hull
+        # ! THE LOOK OF A LISTED VESSEL IS THE LIBRARY'S (saw-livetrack 0.2.21, saw_livetrack.enforcement_vessels; Live
+        # Track Ships draws by the same rules): status, agency, entry, hull and list name, and the hover's first line
+        # (06_MAP_CONTRACT.md D4b rule 14: "USCGC Benjamin Bottoms (WPC 1132) · USCG"), the list's name else what the
+        # vessel broadcasts, the agency at most 22 characters. Unknown values omitted (D0).
+        rec.update(attributes(v, obs.name))
         for k in ("speed_kmh", "course_deg", "heading_deg"):
             val = getattr(obs, k, None)
             if val is not None:
@@ -147,32 +146,9 @@ class VesselTracker:
                 rec["previous_observed_at"] = _iso(prev.observed_at)
                 rec["segment_duration_s"] = round(seg, 1)
         # ! THE AIRCRAFT RULES' SOURCED TREATMENT (Lee 2026-10-30: "use the same rules we already use for
-        # aircraft"): the owner-class fill, which for the Coast Guard is army green ("mil", as
+        # aircraft"): the owner-class fill, which for the Coast Guard is army green (LIST_TONE, "mil", as
         # aircraft_icons.tone_for gives the Coast Guard), and the red/blue glow of a sourced entry.
-        sourced = v.status == SOURCED
-        rec["entity_picture"] = picture_url(VESSEL_KEY, "mil", WEIGHT, "glow" if sourced else False)
+        rec["entity_picture"] = picture_url(VESSEL_KEY, LIST_TONE, WEIGHT, lights(v) or False)
         # A listed vessel by its agency, as a sourced aircraft (tracker.marker_label): the entry's short form first.
-        label = (v.short or v.agency or "Listed vessel").strip()
-        rec["marker_label"] = (label if len(label) <= MAX_LABEL_CHARS
-                               else label[: MAX_LABEL_CHARS - 1].rstrip() + "…")
-        # ! THE HOVER (06_MAP_CONTRACT.md D4b rule 14; Lee 2026-10-30 21:24, "the list name with the agency"): the
-        # card writes "<name> · <operator_short>", "USCGC Benjamin Bottoms · USCG". The list's name, else what the
-        # vessel broadcasts; the agency as the marker gives it, at most 22 characters (rule 12). Omitted when
-        # unknown (rule 8): no "Listed vessel" here, which is the marker's word, not an agency.
-        name = _text(v.name) or _text(obs.name)
-        if name:
-            rec["name"] = name
-        op = _text(v.short) or _text(v.agency)
-        if op:
-            rec["operator_short"] = (op if len(op) <= OPERATOR_SHORT_MAX
-                                     else op[: OPERATOR_SHORT_MAX - 1].rstrip() + "…")
+        rec["marker_label"] = label(v)
         return rec
-
-
-# The longest agency on the hover's first line (06_MAP_CONTRACT.md D4b rule 12).
-OPERATOR_SHORT_MAX = 22
-
-
-def _text(value) -> str:
-    """A non-blank string, stripped, else ""."""
-    return value.strip() if isinstance(value, str) else ""
