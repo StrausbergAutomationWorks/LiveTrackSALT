@@ -108,14 +108,15 @@ kilometres, and whether to show listed aircraft outside it.
 | Domain | `live_track_salt` |
 | Entities | one `geo_location` entity per aircraft, named `SALT aircraft <hex>` (so `geo_location.salt_aircraft_<hex>`), created and removed as aircraft come and go; one sensor, `Live Track SALT aircraft shown`, counting the aircraft shown |
 | Identity | ICAO hex, never a callsign |
-| Positions | [adsb.fi](https://adsb.fi): one request a minute for the whole list, and the focus area every 15 seconds |
+| Positions | [adsb.fi](https://adsb.fi): one request a minute for the whole list, and the focus area every 15 seconds. While adsb.fi is failing, [adsb.lol](https://adsb.lol) answers both, the focus area every 30 seconds |
 | Shared code | [`saw-livetrack`](https://pypi.org/project/saw-livetrack/): the list reader, the aircraft icons and the shared poll |
 
 ## Licence
 
 Code: MIT, see `LICENSE`. The EnforcementAircraft list is under the Open
-Database License (ODbL) v1.0. Aircraft positions are from adsb.fi; a focus area
-inside Live Track Aircraft's circle uses that circle's answer, which may come
-from adsb.lol (ODbL v1.0), and each aircraft credits the feed it came from. Aircraft
+Database License (ODbL) v1.0. Aircraft positions are from adsb.fi, and from
+adsb.lol (ODbL v1.0) while adsb.fi is failing; a focus area inside Live Track
+Aircraft's circle uses that circle's answer, which may come from adsb.lol. Each
+aircraft credits the feed it came from. Aircraft
 icons by [ADS-B Radar](https://adsb-radar.com); the icons drawn for this project
 were donated to ADS-B Radar and are under its terms. See `ATTRIBUTION.md`.

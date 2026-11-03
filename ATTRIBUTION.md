@@ -6,10 +6,10 @@ Positions come from [adsb.fi](https://adsb.fi), whose terms ask that it be cited
 home page. Every entity's attribution names it. Use is personal and non-commercial, under adsb.fi's
 own terms.
 
-This integration never asks adsb.lol itself. A focus area lying inside Live Track Aircraft's circle is
-answered from that circle's last answer, which may have come from [adsb.lol](https://adsb.lol), whose
-data is under the [Open Database License (ODbL) v1.0](https://opendatacommons.org/licenses/odbl/1-0/);
-an aircraft drawn from such an answer credits adsb.lol.
+While adsb.fi is failing, this integration asks [adsb.lol](https://adsb.lol), whose data is under the
+[Open Database License (ODbL) v1.0](https://opendatacommons.org/licenses/odbl/1-0/). A focus area lying
+inside Live Track Aircraft's circle is answered from that circle's last answer, which may also have come
+from adsb.lol. An aircraft drawn from such an answer credits adsb.lol.
 
 ## The list: EnforcementAircraft (ODbL v1.0)
 

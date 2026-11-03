@@ -2,7 +2,8 @@
 
 ! ONE POLL PER INSTANCE (saw_livetrack.adsb_poll, backlog 297): the list's hexes join the union hex
 round once a minute; the focus area is a circle request every SCAN_INTERVAL_S, asked once if another
-consumer asks the same circle; one 429 backoff for the house's IP. adsb.fi only, never adsb.lol.
+consumer asks the same circle; one backoff for the house's IP. adsb.fi first, adsb.lol only while adsb.fi is failing
+(Lee 2026-11-02 22:11, after adsb.fi hung from 21:29 that night and every aircraft left the map).
 ! A FAILED CIRCLE NEVER BLANKS THE LIST: the hex round's answer stands on its own, and the last good
 circle is served for MAX_TRANSIENT_FAILURES polls before the focus area empties (its status says why).
 """
@@ -28,7 +29,7 @@ from saw_livetrack.enforcement_vessels import VesselList
 from . import icons
 from .const import (
     CONF_AISSTREAM_KEY, CONF_LATITUDE, CONF_LONGITUDE, CONF_MAX_AIRCRAFT, CONF_NATIONWIDE, CONF_RADIUS_KM, CONSUMER, DOMAIN,
-    DEFAULT_MAX_AIRCRAFT, DEFAULT_NATIONWIDE, DEFAULT_RADIUS_KM, MAX_TRANSIENT_FAILURES, SCAN_INTERVAL_S,
+    DEFAULT_MAX_AIRCRAFT, DEFAULT_NATIONWIDE, DEFAULT_RADIUS_KM, LOL_CIRCLE_EVERY_S, MAX_TRANSIENT_FAILURES, SCAN_INTERVAL_S,
     USER_AGENT, VESSEL_CONSUMER,
 )
 from .tracker import Tracker
@@ -129,10 +130,12 @@ class EnforcementCoordinator(DataUpdateCoordinator):
             # answered it; the source is kept so the entities credit the feed the data came from.
             self.circle_source, self._circle = await self.poll.circle(
                 self._session, self.latitude, self.longitude, self.radius_km, now,
-                sources=ap.FI_ONLY, min_expected=ap.short_floor(self._last_count), user_agent=USER_AGENT,
-                consumer=CONSUMER)
+                sources=ap.FI_THEN_LOL, min_expected=ap.short_floor(self._last_count), user_agent=USER_AGENT,
+                consumer=CONSUMER, fallback_every_s=LOL_CIRCLE_EVERY_S)
             if self.poll.circle_how.get(CONSUMER) == "covered":
                 circle_status = "ok, covered by another integration's circle"
+            elif self.circle_source != ap.FI:
+                circle_status = f"ok from {self.circle_source}"
             self._circle_failures = 0
             self._last_count = len(self._circle)
         except ap.SourceError as err:
@@ -149,11 +152,11 @@ class EnforcementCoordinator(DataUpdateCoordinator):
         if self.tracker.detections_added:
             self.tracker.detections_added = False
             await self._detections_store.async_save(dict(self.tracker.detections))
-        # Which feed each aircraft came from, for its attribution: the focus area's answer may be another
-        # integration's, from adsb.lol; the hex round is always adsb.fi.
+        # Which feed each aircraft came from, for its attribution: the focus area's answer may be adsb.lol's, its own
+        # or another integration's; the hex round's is adsb.fi's unless adsb.fi was failing (poll.hex_source).
         in_circle = {o.identity for o in self._circle}
         for hex_id, rec in aircraft.items():
-            rec["feed"] = self.circle_source if hex_id in in_circle and not rec.get("outside_radius") else ap.FI
+            rec["feed"] = self.circle_source if hex_id in in_circle and not rec.get("outside_radius") else self.poll.hex_source
         # ! ONE VESSEL, ONE MARKER (backlog 315 task 5): what another consumer claims on the shared aisstream client
         # (Live Track Ships, which draws a listed vessel itself) is left to it. SALT claims nothing for vessels.
         vessel_skip = (ais_client.shared(self.hass.data).claimed_by_others(VESSEL_CONSUMER)

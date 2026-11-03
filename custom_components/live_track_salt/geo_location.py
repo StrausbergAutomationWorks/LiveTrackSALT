@@ -105,7 +105,7 @@ class EnforcementAircraft(GeolocationEvent):
 
     @property
     def attribution(self) -> str:
-        # The feed the position came from (adsb.lol only through another integration's circle, 0.2.14),
+        # The feed the position came from (adsb.lol while adsb.fi is failing, or through another integration's circle),
         # and the list's ODbL notice on what the list decided.
         rec = self._rec() or {}
         feed = LOL_ATTRIBUTION if rec.get("feed") == "adsb.lol" else FEED_ATTRIBUTION

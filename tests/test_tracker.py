@@ -334,22 +334,28 @@ class TestBoundaries(unittest.TestCase):
             for word in ("filedroutes", "release_session", "github_frdb", "saw_routes", "ladd"):
                 self.assertNotIn(word, text.lower(), "%s names %s" % (name, word))
 
-    def test_never_adsb_lol(self):
+    def test_adsb_lol_only_through_the_shared_poll_and_spaced(self):
+        # Lee 2026-11-02 22:11: adsb.fi first, adsb.lol only while it is failing. The URLs and the rule are the library's.
         for name, text in self._code():
             code = "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("#"))
             code = re.sub(r'"""[\s\S]*?"""', "", code)
-            self.assertNotIn("FI_THEN_LOL", code, name)
             self.assertNotIn("api.adsb.lol", code, name)
+        coord = dict(self._code())["coordinator.py"]
+        self.assertIn("consumer=CONSUMER, fallback_every_s=LOL_CIRCLE_EVERY_S)", coord)
+        self.assertRegex(dict(self._code())["const.py"], r"LOL_CIRCLE_EVERY_S = 30\.0")
+        self.assertIn('circle_status = f"ok from {self.circle_source}"', coord)
+        self.assertIn("LOL_ATTRIBUTION", dict(self._code())["const.py"].split("ATTRIBUTION = FEED_ATTRIBUTION")[1].splitlines()[0])
 
     def test_the_focus_area_is_asked_as_this_integration_and_credits_its_feed(self):
         # 0.2.14: a focus area inside another integration's circle costs no request; the feed is credited
         coord = dict(self._code())["coordinator.py"]
-        self.assertIn("consumer=CONSUMER)", coord)
-        self.assertIn("sources=ap.FI_ONLY", coord)
+        self.assertIn("consumer=CONSUMER,", coord)
+        self.assertIn("sources=ap.FI_THEN_LOL", coord)
         self.assertIn('rec["feed"] = self.circle_source', coord)
+        self.assertIn('else self.poll.hex_source', coord)
         geo = dict(self._code())["geo_location.py"]
         self.assertIn('LOL_ATTRIBUTION if rec.get("feed") == "adsb.lol" else FEED_ATTRIBUTION', geo)
-        self.assertIn('"saw-livetrack>=0.2.22,<0.3"', dict(self._code())["manifest.json"])
+        self.assertIn('"saw-livetrack>=0.2.24,<0.3"', dict(self._code())["manifest.json"])
 
     def test_the_registry_is_loaded_refreshed_and_passed(self):
         init = dict(self._code())["__init__.py"]
