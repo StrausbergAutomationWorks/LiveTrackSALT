@@ -28,7 +28,7 @@ from saw_livetrack.enforcement_vessels import VesselList
 
 from . import icons
 from .const import (
-    CONF_AISSTREAM_KEY, CONF_LATITUDE, CONF_LONGITUDE, CONF_MAX_AIRCRAFT, CONF_NATIONWIDE, CONF_RADIUS_KM, CONSUMER, DOMAIN,
+    CONF_ADSBLOL_KEY, CONF_AISSTREAM_KEY, CONF_LATITUDE, CONF_LONGITUDE, CONF_MAX_AIRCRAFT, CONF_NATIONWIDE, CONF_RADIUS_KM, CONSUMER, DOMAIN,
     DEFAULT_MAX_AIRCRAFT, DEFAULT_NATIONWIDE, DEFAULT_RADIUS_KM, LOL_CIRCLE_EVERY_S, MAX_TRANSIENT_FAILURES, SCAN_INTERVAL_S,
     USER_AGENT, VESSEL_CONSUMER,
 )
@@ -52,6 +52,10 @@ class EnforcementCoordinator(DataUpdateCoordinator):
                          update_interval=timedelta(seconds=SCAN_INTERVAL_S))
         self._session = async_get_clientsession(hass)
         self.poll = poll
+        # The user's own adsb.lol API key (backlog 336), given to the shared poll before the first request;
+        # poll.release(CONSUMER) drops it when the entry unloads. "" means keyless.
+        self.adsblol_key = str(opts.get(CONF_ADSBLOL_KEY) or "").strip()
+        poll.set_key(CONSUMER, self.adsblol_key)
         self.reader = reader
         self.registry = registry
         self.tracker = Tracker(self.latitude, self.longitude, self.radius_km, registry)
@@ -187,6 +191,8 @@ class EnforcementCoordinator(DataUpdateCoordinator):
             "circle_status": circle_status,
             "hex_status": hex_status,
             "source_backoff": self.poll.backoff.status(),
+            # "none", "set" or "refused" (wrong or expired: asked without it); never the key (backlog 336)
+            "adsblol_key": self.poll.key_status(),
             "list": self.reader.summary,
             "radius_km": self.radius_km,
             "max_aircraft": self.max_aircraft,

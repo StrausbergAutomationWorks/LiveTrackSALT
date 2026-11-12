@@ -28,6 +28,9 @@ CONSUMER = DOMAIN
 # no vessels). aisstream publishes no terms (Live Track Ships SSOT item 250); credited anyway.
 VESSEL_CONSUMER = DOMAIN + ":vessels"
 CONF_AISSTREAM_KEY = "aisstream_api_key"
+# ! The user's own adsb.lol API key (backlog 336): optional, sent only to adsb.lol (asked while adsb.fi is failing)
+# by the shared poll, saw-livetrack 0.2.36. Without one adsb.lol allows 500 requests a day per IP.
+CONF_ADSBLOL_KEY = "adsblol_api_key"
 AIS_ATTRIBUTION = "Data: aisstream.io (https://aisstream.io)"
 # The list's ODbL line is the library's since saw-livetrack 0.2.21 (the same text; Live Track Ships credits by it).
 from saw_livetrack.enforcement_vessels import LIST_ATTRIBUTION as VESSEL_LIST_ATTRIBUTION  # noqa: E402

@@ -108,7 +108,7 @@ kilometres, and whether to show listed aircraft outside it.
 | Domain | `live_track_salt` |
 | Entities | one `geo_location` entity per aircraft, named `SALT aircraft <hex>` (so `geo_location.salt_aircraft_<hex>`), created and removed as aircraft come and go; one sensor, `Live Track SALT aircraft shown`, counting the aircraft shown |
 | Identity | ICAO hex, never a callsign |
-| Positions | [adsb.fi](https://adsb.fi): one request a minute for the whole list, and the focus area every 15 seconds. While adsb.fi is failing, [adsb.lol](https://adsb.lol) answers both, the focus area every 30 seconds |
+| Positions | [adsb.fi](https://adsb.fi): one request a minute for the whole list, and the focus area every 15 seconds. While adsb.fi is failing, [adsb.lol](https://adsb.lol) answers both, the focus area every 30 seconds. adsb.lol allows 500 requests a day from one address without a key; a key of your own (optional, in the dialog) raises that, and is sent only to adsb.lol. The sensor's `adsblol_key` attribute reads `none`, `set`, or `refused` when adsb.lol turned it down (it then carries on without it) |
 | Shared code | [`saw-livetrack`](https://pypi.org/project/saw-livetrack/): the list reader, the aircraft icons and the shared poll |
 
 ## Licence

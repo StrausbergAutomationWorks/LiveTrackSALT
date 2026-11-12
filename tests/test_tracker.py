@@ -355,7 +355,7 @@ class TestBoundaries(unittest.TestCase):
         self.assertIn('else self.poll.hex_source', coord)
         geo = dict(self._code())["geo_location.py"]
         self.assertIn('LOL_ATTRIBUTION if rec.get("feed") == "adsb.lol" else FEED_ATTRIBUTION', geo)
-        self.assertIn('"saw-livetrack>=0.2.24,<0.3"', dict(self._code())["manifest.json"])
+        self.assertIn('"saw-livetrack>=0.2.36,<0.3"', dict(self._code())["manifest.json"])   # 0.2.36: the adsb.lol key (backlog 336)
 
     def test_the_registry_is_loaded_refreshed_and_passed(self):
         init = dict(self._code())["__init__.py"]

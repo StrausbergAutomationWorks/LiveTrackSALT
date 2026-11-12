@@ -9,7 +9,8 @@
           "radius_km": "Radius of the focus area (km)",
           "max_aircraft": "Most aircraft shown in the focus area (listed aircraft are always shown)",
           "nationwide": "Show listed aircraft outside the focus area",
-          "aisstream_api_key": "aisstream.io API key, for listed vessels (optional; free at aisstream.io)"
+          "aisstream_api_key": "aisstream.io API key, for listed vessels (optional; free at aisstream.io)",
+          "adsblol_api_key": "adsb.lol API key (optional; your own, sent only to adsb.lol, which is asked while adsb.fi is failing)"
         }
       }
     },
@@ -29,7 +30,8 @@
           "radius_km": "Radius of the focus area (km)",
           "max_aircraft": "Most aircraft shown in the focus area (listed aircraft are always shown)",
           "nationwide": "Show listed aircraft outside the focus area",
-          "aisstream_api_key": "aisstream.io API key, for listed vessels (optional; free at aisstream.io)"
+          "aisstream_api_key": "aisstream.io API key, for listed vessels (optional; free at aisstream.io)",
+          "adsblol_api_key": "adsb.lol API key (optional; your own, sent only to adsb.lol, which is asked while adsb.fi is failing)"
         }
       }
     },

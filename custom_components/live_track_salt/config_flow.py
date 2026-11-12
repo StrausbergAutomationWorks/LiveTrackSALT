@@ -12,11 +12,13 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers.selector import LocationSelector, LocationSelectorConfig
+from homeassistant.helpers.selector import (
+    LocationSelector, LocationSelectorConfig, TextSelector, TextSelectorConfig, TextSelectorType,
+)
 
 from .centre import from_form, to_form
 from .const import (
-    CONF_AISSTREAM_KEY, CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_MAX_AIRCRAFT, CONF_NATIONWIDE,
+    CONF_ADSBLOL_KEY, CONF_AISSTREAM_KEY, CONF_LATITUDE, CONF_LOCATION, CONF_LONGITUDE, CONF_MAX_AIRCRAFT, CONF_NATIONWIDE,
     CONF_RADIUS_KM,
     DEFAULT_MAX_AIRCRAFT, DEFAULT_NATIONWIDE, DEFAULT_RADIUS_KM, DOMAIN, MAX_MAX_AIRCRAFT, MAX_RADIUS_KM,
     MIN_MAX_AIRCRAFT, MIN_RADIUS_KM,
@@ -41,6 +43,10 @@ def _schema(defaults: dict[str, Any], hass) -> vol.Schema:
         vol.Required(CONF_NATIONWIDE, default=defaults.get(CONF_NATIONWIDE, DEFAULT_NATIONWIDE)): bool,
         # ! OPTIONAL (backlog 315): the user's own aisstream.io key; without it SALT draws no vessels.
         vol.Optional(CONF_AISSTREAM_KEY, default=defaults.get(CONF_AISSTREAM_KEY, "")): str,
+        # ! OPTIONAL (backlog 336): the user's own adsb.lol API key, masked. suggested_value, not default: with a
+        # default, a cleared field sends nothing and the old key would come back.
+        vol.Optional(CONF_ADSBLOL_KEY, description={"suggested_value": defaults.get(CONF_ADSBLOL_KEY, "")}):
+            TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD)),
     })
 
 
@@ -51,6 +57,8 @@ class EnforcementConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             values, error = from_form(user_input)
+            # Stored without surrounding spaces, "" meaning none, so a cleared key is not read back from entry.data.
+            values[CONF_ADSBLOL_KEY] = (values.get(CONF_ADSBLOL_KEY) or "").strip()
             if error is None:
                 return self.async_create_entry(title=_title(values), data=values)
             errors[CONF_LOCATION] = error
@@ -70,6 +78,8 @@ class EnforcementOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
         if user_input is not None:
             values, error = from_form(user_input)
+            # Stored without surrounding spaces, "" meaning none, so a cleared key is not read back from entry.data.
+            values[CONF_ADSBLOL_KEY] = (values.get(CONF_ADSBLOL_KEY) or "").strip()
             if error is None:
                 # ! TITLE AND OPTIONS IN ONE CALL, as Live Track Aircraft learned (2026-09-19): a
                 # title-only update reloads the entry before the new options are stored.
