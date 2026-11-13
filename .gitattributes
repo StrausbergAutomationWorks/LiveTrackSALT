@@ -3,3 +3,6 @@
 # core.autocrlf=true git would otherwise rewrite them to LF on commit, and the
 # repository (and HACS) would ship a file that is not the release. Backlog 291.
 custom_components/*/frontend/** -text -diff
+# The vessel icon is pinned by SHA-256 in tests/test_vessels.py: SVGs are kept byte for byte (LF), so a fresh
+# checkout under core.autocrlf=true does not turn them into CRLF and fail the pin (measured 2026-11-12).
+*.svg -text
