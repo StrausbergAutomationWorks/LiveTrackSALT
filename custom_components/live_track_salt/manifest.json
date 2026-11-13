@@ -2,7 +2,7 @@
   "domain": "live_track_salt",
   "name": "Live Track SALT",
   "after_dependencies": ["lovelace"],
-  "categories": ["vehicles_transport.flights", "vehicles_transport"],
+  "categories": ["vehicles_transport", "security_safety"],
   "codeowners": ["@LeeS773-prog"],
   "config_flow": true,
   "dependencies": ["http"],
