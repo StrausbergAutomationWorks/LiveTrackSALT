@@ -143,7 +143,7 @@ class Shipped(unittest.TestCase):
         self.assertIn("http", m["dependencies"])
         self.assertIn("lovelace", m["after_dependencies"])
         req = [r for r in m["requirements"] if r.startswith("saw-livetrack")]
-        self.assertEqual(req, ["saw-livetrack>=0.2.36,<0.3"])   # 0.2.8 brought map_card; 0.2.36 the adsb.lol key (backlog 336)
+        self.assertEqual(req, ["saw-livetrack>=0.2.42,<0.3"])   # 0.2.8 brought map_card; 0.2.36 the adsb.lol key (backlog 336); 0.2.42 only our own resource rows
         keys = list(m)
         self.assertEqual(keys[:2], ["domain", "name"])
         self.assertEqual(keys[2:], sorted(keys[2:]))

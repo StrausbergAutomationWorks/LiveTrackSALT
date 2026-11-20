@@ -52,7 +52,7 @@ class AdsbLolKey(unittest.TestCase):
             self.assertTrue(step["data"]["adsblol_api_key"].startswith("adsb.lol API key (optional"))
 
     def test_requires_the_library_that_sends_it(self):
-        self.assertIn("saw-livetrack>=0.2.36,<0.3", json.loads(src("manifest.json"))["requirements"])
+        self.assertIn("saw-livetrack>=0.2.42,<0.3", json.loads(src("manifest.json"))["requirements"])
 
 
 if __name__ == "__main__":
