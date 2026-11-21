@@ -21,8 +21,8 @@ FRONTEND = os.path.join(COMP, "frontend")
 CARD = os.path.join(FRONTEND, "live-track-map-card.js")
 # LiveTrackCore reference/shared_map_card.py at 76ca971, SHA-256 of its LF text (bin\lt_reference_drift.py)
 REFERENCE_SHA12 = "15251d6fcc54"
-# LiveTrackMapCard release v0.1.0 (tools/vendor_card.py checks the asset's .sha256)
-RELEASE_SHA12, RELEASE_VERSION, RELEASE_SIZE = "03ca81cd9ce1", "0.1.0+5a0bc01", 962822
+# LiveTrackMapCard release v0.1.8 (tools/vendor_card.py checks the asset's .sha256)
+RELEASE_SHA12, RELEASE_VERSION, RELEASE_SIZE = "7760014d5dda", "0.1.8+2bcbc9a", 1292750
 
 
 def _tree():
