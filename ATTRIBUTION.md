@@ -50,6 +50,40 @@ StrausbergAutomationWorks, under the MIT licence in `LICENSE`. The brand icon in
 library's Beechcraft King Air 350 (`kingair350.svg`, drawn for StrausbergAutomationWorks to the type's
 published dimensions and donated to ADS-B Radar, so it is under ADS-B Radar's terms, above).
 
+## Aircraft photos: Planespotters.net
+
+When a viewer points at an aircraft on the map, the integration asks the Planespotters.net photo API
+(https://www.planespotters.net/photo/api) at runtime for a photo of that aircraft, by its hex code. Each Home
+Assistant asks for its own users and answers for its own use; the requests carry a User-Agent naming the shared
+`saw-livetrack` library and its repository. Nothing from Planespotters.net is shipped in this repository, and no
+photo is copied into it.
+
+Planespotters.net's terms are on that page (read 21 November 2026). What the code does to keep them, wherever a user
+cannot change it:
+
+* the photographer is named beside every photo, and the photo links to its page on Planespotters.net by the address
+  the API returns, unchanged, in a plain link;
+* an answer is kept for at most 24 hours: 12 hours in Home Assistant's memory, and at most 12 hours more in the page
+  showing the map;
+* the viewer's browser loads each image straight from the address the API returns; the integration does not
+  download, store, proxy or re-host any image;
+* a photo is asked for only when a viewer points at an aircraft, one request at a time for each aircraft; HTTP 429
+  pauses every lookup, and HTTP 403 stops them for a day.
+
+Each photo belongs to its photographer. The photos are not covered by the MIT licence in `LICENSE`, which applies to
+the code in this repository. If you show the map to others, keep the photographer's name and the link with each
+photo.
+
+## Vessel photos: Wikidata and Wikimedia Commons
+
+For each listed vessel the integration asks Wikidata (https://www.wikidata.org) at runtime which item carries the
+vessel's IMO number or, when that finds nothing, its MMSI number, and asks Wikimedia Commons
+(https://commons.wikimedia.org) for that item's image: a thumbnail address, the file's page, its author and its
+licence. Wikidata's data is under CC0 1.0. Each image stays under its own licence, which is shown with it beside its
+author's name, and links to its page on Commons; the viewer's browser loads it from Wikimedia. The requests carry a
+User-Agent naming the shared `saw-livetrack` library and its repository, as Wikimedia's policy asks. Nothing from
+either is shipped in this repository.
+
 ## The map card
 
 `custom_components/live_track_salt/frontend/live-track-map-card.js` is a released build of

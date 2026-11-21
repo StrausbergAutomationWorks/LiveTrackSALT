@@ -24,14 +24,15 @@ migratorio, allí donde se hace ese trabajo.
 > [Sugiérelo](#ayúdanos-a-hacerlo-crecer), o añádelo tú mismo: te ayudaremos a
 > hacerlo.
 
-**Estado: 0.1.0, la primera versión.** Añadido al Marketplace por su enlace
+**Estado: 0.1.3, publicada.** Añadido al Marketplace por su enlace
 ([abajo](#instalarlo-paso-a-paso)); todavía no está en el catálogo del
 Marketplace.
 
 Obra original de StrausbergAutomationWorks. Sin relación con adsb.fi,
 adsb.lol, aisstream.io, la Federal Aviation Administration (Estados Unidos),
-ADS-B Radar, ninguna agencia del gobierno, ninguna aerolínea ni ningún
-operador de aviones, ni respaldado por ellos.
+ADS-B Radar, Planespotters.net, Wikidata, Wikimedia Commons, ninguna agencia
+del gobierno, ninguna aerolínea ni ningún operador de aviones, ni respaldado
+por ellos.
 
 > ⚠ **No es un sistema de alerta.** Muestra datos públicos, normalmente de
 > hace unos segundos y a veces de un minuto o más, y solo los aviones que
@@ -82,12 +83,13 @@ que haya dentro.
 | **Aviones de las fuerzas federales del orden en el registro de la FAA**: dibujados en azul con luces, para que aparezca también un avión matriculado después de crear la lista | en cualquier parte del mundo (aviones matriculados en los Estados Unidos) | el registro de aeronaves de la FAA (Estados Unidos) |
 | **Detecciones**: un avión que no está en la lista y transmite un indicativo que usa DHS (`TROY` y cifras) lleva la etiqueta "Detected, unconfirmed" (detectado, sin confirmar), se dibuja sin luces bajo un anillo blanco discontinuo, y se vigila en todas partes desde entonces | encontrado en tu zona de interés, luego en cualquier parte | adsb.fi |
 | **Cada avión de tu zona de interés**: cada uno dibujado como su propio tipo y girado hacia donde vuela | tu zona de interés | adsb.fi, o adsb.lol |
+| **Fotos**: una foto del avión, con el nombre del fotógrafo, al señalarlo | cada avión del que Planespotters.net tiene foto | Planespotters.net ([más](#fotos)) |
 
 ### Activado con tu propia clave o cuenta gratuita
 
 | Clave o cuenta gratuita | Qué añade |
 |---|---|
-| clave de **aisstream.io** | los buques de la Guardia Costera de la lista pública EnforcementVessels, dentro de cuatro zonas de agua donde se hace trabajo migratorio |
+| clave de **aisstream.io** | los buques de la Guardia Costera de la lista pública EnforcementVessels, dentro de cuatro zonas de agua donde se hace trabajo migratorio, cada uno con su foto cuando Wikimedia Commons tiene una ([más](#fotos)) |
 | clave de **adsb.lol** | más peticiones al día a adsb.lol, la segunda fuente, para que el mapa siga funcionando durante una caída larga de adsb.fi |
 
 Cada una se consigue en unos minutos: [paso a paso abajo](#claves-gratuitas-que-activan-más-paso-a-paso).
@@ -371,8 +373,9 @@ regla `- domain: geo_location` más por cada fuente.
 * La etiqueta de un avión de la lista es su agencia (`CBP`, `ICE`). Un chárter
   de ICE Air dice `ICE Air Charter?`, una detección `Detected, unconfirmed`.
   Los demás aviones muestran su indicativo, su operador o su tipo.
-* **Señala** un marcador para ver quién lo opera y qué dice la lista de él.
-  **Haz clic** en él para ver todos sus detalles.
+* **Señala** un marcador para ver quién lo opera, qué dice la lista de él y
+  su foto cuando la hay. **Haz clic** en él para ver todos sus detalles y una
+  foto más grande, enlazada con su página ([Fotos](#fotos)).
 
 La tarjeta mantiene una sola fila de recurso del panel de control para todos
 los módulos de Live Track juntos: la versión más nueva de la tarjeta que lleve
@@ -546,6 +549,46 @@ Cuando lo medimos, a las 01:25 hora central (Estados Unidos) del 19 de
 noviembre de 2026, se oían cuatro buques de la lista, todos fuera de las cuatro
 zonas, y no se dibujó ninguno.
 
+### Fotos
+
+**Aviones.** Al señalar un avión, el mapa muestra una foto suya de
+[Planespotters.net](https://www.planespotters.net), si la hay, con el nombre
+del fotógrafo al lado. Haz clic en el avión para ver la foto más grande; la
+foto enlaza con su página en Planespotters.net. No hay nada que configurar.
+
+La foto se busca solo cuando alguien señala ese avión, nunca para todos los
+aviones del mapa. Tu Home Assistant la pide a Planespotters.net por el código
+hexadecimal del avión y guarda la respuesta, una foto o ninguna, durante 12
+horas, solo en memoria, así que un reinicio la olvida. El navegador que muestra
+el mapa carga la imagen directamente de Planespotters.net. Home Assistant no
+descarga, guarda ni reenvía ninguna imagen.
+
+**Buques de la Guardia Costera de la lista.** Un buque de la lista muestra una
+foto de [Wikimedia Commons](https://commons.wikimedia.org) cuando
+[Wikidata](https://www.wikidata.org) tiene una para él, con el nombre del autor
+y la licencia. Se busca por el número IMO del buque y, si así no se encuentra
+nada, por su número MMSI. El 21 de noviembre de 2026, 29 de los 41 buques de la
+lista tenían una. Una foto encontrada se guarda 30 días y un "sin foto" 14, en
+la carpeta `.storage` de Home Assistant. El navegador carga la imagen desde
+Wikimedia.
+
+⚠ Una foto muestra el avión o el buque como lo vio el fotógrafo, quizá con
+otra pintura, otro operador u otro nombre. No todos los aviones ni todos los
+buques tienen foto.
+
+⚠ No se busca foto para un avión que vuela con una dirección temporal por
+privacidad (el programa Privacy ICAO Address de la FAA, Estados Unidos), porque
+ese código hexadecimal no identifica el avión, ni para una traza sin un código
+hexadecimal real.
+
+⚠ Todavía no hay ninguna opción para desactivar las fotos.
+
+Cada avión con código hexadecimal lleva `marker_photo_lookup`: la dirección en
+tu Home Assistant donde el mapa pide su foto. Solo alguien que haya iniciado
+sesión en tu Home Assistant puede usarla. Un buque con foto la lleva en
+`marker_photo`. El registrador no guarda ninguno de los dos. Las fotos son obra
+de sus fotógrafos: consulta [Créditos y licencias](#créditos-y-licencias).
+
 ---
 
 ## Todas las entidades que crea
@@ -581,8 +624,8 @@ sensor tiene identificador único y se puede renombrar.
 ⚠ **Tu base de datos.** El registrador de Home Assistant guarda una fila nueva
 cada vez que cambia una entidad, y un marcador en movimiento cambia en cada
 actualización: cada 15 segundos en tu zona de interés, una vez por minuto en
-otros lugares. Live Track SALT no deja estos atributos fuera del registrador
-por sí mismo. Si no quieres el historial de cada marcador, déjalos fuera del
+otros lugares. Live Track SALT solo deja fuera del registrador, por sí mismo,
+los atributos de las fotos. Si no quieres el historial de cada marcador, déjalos fuera del
 registrador. Añade esto a `configuration.yaml` y reinicia:
 
 ```yaml
@@ -612,9 +655,14 @@ está entera dentro de la zona de Live Track Aircraft, no se envía nada para
 ella. La petición de cada minuto solo lleva los códigos hexadecimales de los
 aviones que se vigilan. aisstream.io recibe tu clave de aisstream.io y los
 números MMSI de la lista de buques, con una zona que cubre todo el mundo: nada
-sobre dónde estás. Tu clave de adsb.lol solo va a adsb.lol. No se envía nada
-más sobre ti a ninguna parte. Cada servicio ve tu dirección de Internet, como
-cualquier sitio web.
+sobre dónde estás. Tu clave de adsb.lol solo va a adsb.lol. Cuando alguien
+señala un avión en el mapa, su código hexadecimal se envía a
+Planespotters.net, como mucho una vez cada 12 horas por avión, y el navegador
+que muestra el mapa carga la foto desde allí. Los números IMO y MMSI de los
+buques de la lista se envían a Wikidata y los nombres de sus archivos de foto
+a Wikimedia Commons, y el navegador carga esas fotos desde Wikimedia. Todavía
+no hay ninguna opción para impedirlo. No se envía nada más sobre ti a ninguna
+parte. Cada servicio ve tu dirección de Internet, como cualquier sitio web.
 
 **Cuánto.** Tamaños medidos el 19 de noviembre de 2026 a las 01:25 hora
 central (Estados Unidos). ⚠ Es de noche en Norteamérica, cuando vuelan muchos
@@ -625,6 +673,8 @@ menos aviones.
 | adsb.fi | cada avión de tu zona de interés, cada 15 segundos; una petición por minuto para todos los aviones vigilados juntos (los de la lista, los de las fuerzas federales del orden del registro de la FAA y las detecciones) | zona de interés de 56 km (35 millas): 0,7 KB (1 avión); de 463 km (288 millas) sobre Texas: 18,9 KB (37 aviones), y 307 KB (535 aviones) de día, el 1 de noviembre de 2026 a las 14:01; la petición de cada minuto para los 416 aviones de la lista: 3,6 KB (6 en el aire) | pregunta a adsb.lol en su lugar. Una fuente que rechaza con HTTP 429 se salta durante el tiempo que pide, hasta 15 minutos; tras dos fallos de otro tipo seguidos, durante 1 minuto, que se dobla hasta 10 minutos. Una zona de interés que falla conserva su última respuesta durante tres actualizaciones |
 | adsb.lol | las mismas peticiones, solo mientras adsb.fi no responde; la zona de interés como mucho cada 30 segundos | zona de interés de 463 km sobre Texas: 18,3 KB | lo mismo |
 | aisstream.io | una conexión, siempre abierta; los buques de la lista llegan a medida que comunican su posición | 2 mensajes, 638 bytes, en 120 segundos | se vuelve a conectar tras una pausa de 2 segundos, que se dobla hasta 5 minutos |
+| Planespotters.net | una petición por la foto de un avión la primera vez que alguien lo señala, y luego ninguna para ese avión durante 12 horas. Las respuestas se guardan solo en memoria. El navegador que muestra el mapa carga la foto por sí mismo | 407 bytes con foto, 13 bytes sin ella (dos aviones, 21 de noviembre de 2026) | tras un HTTP 429, no se pide ninguna foto durante el tiempo que pida Planespotters.net, o durante 10 minutos; tras un HTTP 403, durante un día |
+| Wikidata y Wikimedia Commons | solo para los buques de la lista: hasta tres peticiones por cada 20 buques, como mucho una ronda cada 10 segundos; una foto encontrada se vuelve a pedir a los 30 días, un "sin foto" a los 14 | 126 KB por 20 buques, en tres respuestas de 0,8 KB, 94 KB y 31 KB; 15 fotos encontradas (21 de noviembre de 2026) | se vuelve a pedir un minuto después |
 | EnforcementAircraft, desde GitHub | un archivo de sumas de comprobación cada 6 horas; la lista en sí solo si ha cambiado | sumas de comprobación 91 bytes; lista 292 KB | se reintenta en la siguiente comprobación de cada hora; tu copia sigue en uso |
 | EnforcementVessels, desde GitHub | un archivo de sumas de comprobación cada 6 horas; la lista en sí solo si ha cambiado | sumas de comprobación 90 bytes; lista 90 KB | lo mismo |
 | Registro de aeronaves de la FAA (Estados Unidos) | se comprueba una vez al día; se descarga de `registry.faa.gov` cuando tu copia tiene 7 días | 73,1 MB | se reintenta al día siguiente; tu copia sigue en uso |
@@ -744,6 +794,18 @@ o [tradúcelo con nuestra ayuda](#añadirlo-tú-mismo-con-nuestra-ayuda).
   integración. Los detalles están en [ATTRIBUTION.md](ATTRIBUTION.md).
 * **El icono de los buques** es el casco de Live Track Ships, dibujado para
   StrausbergAutomationWorks, bajo la licencia MIT.
+* **Planespotters.net** (<https://www.planespotters.net>): las fotos de los
+  aviones, a través de su [API de fotos](https://www.planespotters.net/photo/api)
+  y bajo sus condiciones. Cada foto es obra de su fotógrafo, cuyo nombre
+  aparece a su lado, y enlaza con su página en Planespotters.net. No se copia
+  ninguna foto en este repositorio, y Home Assistant no descarga, guarda ni
+  reenvía ninguna imagen. Al instalar esta integración usas Planespotters.net,
+  y sus condiciones se aplican a ti.
+* **Wikidata** (<https://www.wikidata.org>) y **Wikimedia Commons**
+  (<https://commons.wikimedia.org>): las fotos de los buques y los datos que
+  permiten encontrarlas. Cada foto se muestra con su autor y su licencia, tal
+  como los da Commons, y enlaza con su página allí. Los datos de Wikidata están
+  bajo [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
 * **La tarjeta de mapa** es [LiveTrackMapCard](https://github.com/StrausbergAutomationWorks/LiveTrackMapCard),
   MIT, una copia de [ha-map-card](https://github.com/nathan-gs/ha-map-card) de
   nathan-gs, MIT. Sus teselas de mapa y sus créditos están en su README.
@@ -754,8 +816,8 @@ Ninguna de estas organizaciones ha creado ni respaldado esta integración.
 
 **Para desarrolladores:** las entidades siguen el contrato de mapa común de
 Live Track, así que cada módulo aparece en un solo mapa; los lectores de las
-listas, los iconos de aviones, la petición de aviones compartida y la conexión
-compartida con aisstream.io están en la biblioteca
+listas, los iconos de aviones, la petición de aviones compartida, la conexión
+compartida con aisstream.io y la búsqueda de fotos están en la biblioteca
 [saw-livetrack](https://pypi.org/project/saw-livetrack/). Las pruebas se
 ejecutan con `python -m unittest discover -s tests`, con `saw-livetrack`
 instalado.
@@ -769,7 +831,8 @@ CBP · DHS · Guardia Costera · aviones de inmigración · aviones de ICE ·
 inmigración · ADS-B · mapa ADS-B · AIS · seguimiento de vuelos ·
 radar de aviones · immigration enforcement · deportation flights ·
 Coast Guard · adsb.fi · adsb.lol · aisstream.io · EnforcementAircraft ·
-EnforcementVessels · registro de la FAA · ADS-B Radar · geo_location ·
+EnforcementVessels · registro de la FAA · ADS-B Radar · Planespotters.net ·
+fotos de aviones · Wikidata · Wikimedia Commons · geo_location ·
 tarjeta de mapa · Lovelace · HACS · Marketplace · Live Track · LiveTrack ·
 StrausbergAutomationWorks
 

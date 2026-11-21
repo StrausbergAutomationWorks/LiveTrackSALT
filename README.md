@@ -21,14 +21,14 @@ work where that work happens.
 > of water, today, and we are adding more data sources. Is yours missing?
 > [Suggest it](#help-it-grow), or add it yourself: we will help you do it.
 
-**Status: 0.1.0, the first release.** Added to the Marketplace by link
+**Status: 0.1.3, released.** Added to the Marketplace by link
 ([below](#install-it-step-by-step)); it is not in the Marketplace's catalog
 yet.
 
 Original work by StrausbergAutomationWorks. Not affiliated with, or endorsed
 by, adsb.fi, adsb.lol, aisstream.io, the Federal Aviation Administration
-(United States), ADS-B Radar, any government agency, any airline or any
-aircraft operator.
+(United States), ADS-B Radar, Planespotters.net, Wikidata, Wikimedia
+Commons, any government agency, any airline or any aircraft operator.
 
 > ⚠ **Not a warning system.** It shows public data, usually seconds old and
 > sometimes a minute or more, and only aircraft that broadcast where
@@ -77,12 +77,13 @@ they fly; the focus area adds every other aircraft inside it.
 | **Federal law-enforcement aircraft in the FAA registry**: drawn in blue with lights, so an aircraft registered after the list was built still appears | anywhere in the world (aircraft registered in the United States) | the FAA aircraft registry (United States) |
 | **Detections**: an aircraft not on the list that broadcasts a call sign used by DHS (`TROY` and digits) is labelled "Detected, unconfirmed", drawn without lights under a dashed white ring, and watched everywhere from then on | found in your focus area, then anywhere | adsb.fi |
 | **Every aircraft in your focus area**: each drawn as its own type and turned to the direction it flies | your focus area | adsb.fi, or adsb.lol |
+| **Photos**: a photo of an aircraft, with the photographer's name, when you point at it | every aircraft Planespotters.net has a photo of | Planespotters.net ([more](#photos)) |
 
 ### Switched on by your own free key or account
 
 | Free key or account | What it adds |
 |---|---|
-| **aisstream.io** key | the Coast Guard vessels on the public EnforcementVessels list, inside four areas of water where immigration work happens |
+| **aisstream.io** key | the Coast Guard vessels on the public EnforcementVessels list, inside four areas of water where immigration work happens, each with a photo when Wikimedia Commons has one ([more](#photos)) |
 | **adsb.lol** key | more requests a day to adsb.lol, the second source, so the map keeps going during a long adsb.fi outage |
 
 Each takes a few minutes to get: [step by step below](#free-keys-that-switch-on-more-step-by-step).
@@ -347,8 +348,9 @@ Other Live Track modules go in `entity_filter` the same way: one more
 * A listed aircraft's label is its agency (`CBP`, `ICE`). An ICE Air charter
   reads `ICE Air Charter?`, a detection `Detected, unconfirmed`. Other
   aircraft show their call sign, their operator or their type.
-* **Point at** a marker to see who operates it and what the list says about
-  it. **Click** it for all its details.
+* **Point at** a marker to see who operates it, what the list says about it
+  and its photo when there is one. **Click** it for all its details and a
+  larger photo, linked to its page ([Photos](#photos)).
 
 The card keeps exactly one dashboard resource row for every Live Track module
 together: the newest card version any of them carries, never an older one. A
@@ -507,6 +509,45 @@ vessel, one marker.
 we measured, at 01:25 Central Time (United States) on 19 November 2026, four
 listed vessels were heard, all outside the four areas, and none was drawn.
 
+### Photos
+
+**Aircraft.** When you point at an aircraft, the map shows a photo of it from
+[Planespotters.net](https://www.planespotters.net), if there is one, with the
+photographer's name beside it. Click the aircraft to see the photo larger; the
+photo links to its page on Planespotters.net. There is nothing to set up.
+
+The photo is looked up only when someone points at that aircraft, never for
+every aircraft on the map. Your Home Assistant asks Planespotters.net by the
+aircraft's hex code and keeps the answer, a photo or no photo, for 12 hours, in
+memory only, so a restart forgets it. The browser that shows the map loads the
+picture straight from Planespotters.net. Home Assistant does not download,
+store or pass on any picture.
+
+**Listed Coast Guard vessels.** A listed vessel shows a photo from
+[Wikimedia Commons](https://commons.wikimedia.org) when
+[Wikidata](https://www.wikidata.org) has one for it, with the author's name
+and the licence. It is found by the vessel's IMO number and, when that finds
+nothing, by its MMSI number. On 21 November 2026, 29 of the 41 listed vessels
+had one. A photo found is kept for 30 days and a "no photo" for 14, in Home
+Assistant's `.storage` folder. The browser loads the picture from Wikimedia.
+
+⚠ A photo shows the aircraft or vessel as the photographer saw it, perhaps in
+an earlier livery, with an earlier operator or under an earlier name. Not every
+aircraft or vessel has a photo.
+
+⚠ No photo is looked up for an aircraft that flies with a temporary address
+for privacy (the Privacy ICAO Address program of the FAA, United States),
+because that hex code does not identify the aircraft, or for a track without a
+real hex code.
+
+⚠ There is no option to turn photos off yet.
+
+Each aircraft with a hex code carries `marker_photo_lookup`: the address on
+your Home Assistant where the map asks for its photo. Only someone signed in
+to your Home Assistant can use it. A vessel with a photo carries it as
+`marker_photo`. The recorder keeps neither. The photos are the work of their
+photographers: see [Credits and licences](#credits-and-licences).
+
 ---
 
 ## All the entities it creates
@@ -540,8 +581,8 @@ and can be renamed.
 
 ⚠ **Your database.** Home Assistant's recorder stores a new row each time an
 entity changes, and a moving marker changes at every update: every 15 seconds
-in your focus area, once a minute elsewhere. Live Track SALT does not keep
-these attributes out of the recorder itself. Unless you want the history of
+in your focus area, once a minute elsewhere. Live Track SALT keeps only the
+photo attributes out of the recorder itself. Unless you want the history of
 every marker, keep them out of the recorder. Add this to `configuration.yaml`,
 then restart:
 
@@ -571,8 +612,14 @@ wholly inside Live Track Aircraft's area, nothing is sent for it. The
 once-a-minute request carries only the hex codes of the aircraft being
 watched. aisstream.io receives your aisstream.io key and the MMSI numbers on
 the vessel list, with an area covering the whole world: nothing about where
-you are. Your adsb.lol key goes only to adsb.lol. Nothing else about you is
-sent anywhere. Each service sees your internet address, as any website does.
+you are. Your adsb.lol key goes only to adsb.lol. When someone points at an
+aircraft on the map, its hex code is sent to Planespotters.net, at most once
+every 12 hours for each aircraft, and the browser showing the map loads the
+photo from there. The IMO and MMSI numbers of the listed vessels are sent to
+Wikidata and the names of their photo files to Wikimedia Commons, and the
+browser loads those photos from Wikimedia. There is no option to stop this
+yet. Nothing else about you is sent anywhere. Each service sees your
+internet address, as any website does.
 
 **How much.** Sizes measured on 19 November 2026 at 01:25 Central Time
 (United States). ⚠ That is night in North America, when far fewer aircraft
@@ -583,6 +630,8 @@ fly.
 | adsb.fi | every aircraft in your focus area, every 15 seconds; one request a minute for every watched aircraft together (the list's, the FAA registry's federal law-enforcement aircraft and the detections) | focus area of 56 km (35 miles): 0.7 KB (1 aircraft); of 463 km (288 miles) over Texas: 18.9 KB (37 aircraft), and 307 KB (535 aircraft) by day on 1 November 2026 at 14:01; the once-a-minute request for the list's 416 aircraft: 3.6 KB (6 in the air) | asks adsb.lol instead. A source that refuses with HTTP 429 is skipped for the time it asks, up to 15 minutes; after two other failures in a row, for 1 minute, doubling up to 10 minutes. A failed focus area keeps its last answer for three updates |
 | adsb.lol | the same requests, only while adsb.fi does not answer; the focus area at most every 30 seconds | focus area of 463 km over Texas: 18.3 KB | the same |
 | aisstream.io | one connection, kept open; listed vessels arrive as they report | 2 messages, 638 bytes, in 120 seconds | reconnects after a pause of 2 seconds, doubling up to 5 minutes |
+| Planespotters.net | one request for an aircraft's photo the first time someone points at it, then none for that aircraft for 12 hours. Answers are kept in memory only. The browser showing the map loads the photo itself | 407 bytes with a photo, 13 bytes without (two aircraft, 21 November 2026) | after HTTP 429, no photo is asked for during the time Planespotters.net asks, or for 10 minutes; after HTTP 403, for a day |
+| Wikidata and Wikimedia Commons | for listed vessels only: up to three requests for 20 vessels at a time, at most one round every 10 seconds; a photo found is asked for again after 30 days, a "no photo" after 14 | 126 KB for 20 vessels, in three answers of 0.8 KB, 94 KB and 31 KB; 15 photos found (21 November 2026) | asked again a minute later |
 | EnforcementAircraft, from GitHub | a checksum file every 6 hours; the list itself only when it has changed | checksum 91 bytes; list 292 KB | tried again at the next hourly check; the copy you have stays in use |
 | EnforcementVessels, from GitHub | a checksum file every 6 hours; the list itself only when it has changed | checksum 90 bytes; list 90 KB | the same |
 | FAA aircraft registry (United States) | checked once a day; downloaded from `registry.faa.gov` when your copy is 7 days old | 73.1 MB | tried again the next day; the copy you have stays in use |
@@ -700,6 +749,18 @@ Found a mistake in a translation, or need another language? Tell us at
   [ATTRIBUTION.md](ATTRIBUTION.md).
 * **The vessel icon** is Live Track Ships' hull, drawn for
   StrausbergAutomationWorks, under the MIT licence.
+* **Planespotters.net** (<https://www.planespotters.net>): the aircraft
+  photos, through its [photo API](https://www.planespotters.net/photo/api) and
+  under its terms. Each photo is the work of its photographer, who is named
+  beside it, and links to its page on Planespotters.net. No photo is copied
+  into this repository, and Home Assistant does not download, store or pass on
+  any picture. By installing this integration you use Planespotters.net, and
+  its terms apply to you.
+* **Wikidata** (<https://www.wikidata.org>) and **Wikimedia Commons**
+  (<https://commons.wikimedia.org>): the vessel photos and the facts that find
+  them. Each photo is shown with its author and its licence, as Commons gives
+  them, and links to its page there. Wikidata's data is under
+  [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
 * **The map card** is [LiveTrackMapCard](https://github.com/StrausbergAutomationWorks/LiveTrackMapCard),
   MIT, a copy of [ha-map-card](https://github.com/nathan-gs/ha-map-card) by
   nathan-gs, MIT. Its map tiles and their credits are in its README.
@@ -710,7 +771,8 @@ None of these organisations made or endorsed this integration.
 
 **For developers:** the entities follow the shared Live Track map contract,
 so every module renders on one map; the list readers, the aircraft icons, the
-shared aircraft request and the shared aisstream.io connection are in the
+shared aircraft request, the shared aisstream.io connection and the photo
+lookups are in the
 [saw-livetrack](https://pypi.org/project/saw-livetrack/) library. The tests
 run with `python -m unittest discover -s tests`, with `saw-livetrack`
 installed.
@@ -724,7 +786,8 @@ CBP · DHS · Coast Guard · immigration aircraft · enforcement aircraft ·
 ADS-B · ADS-B map · AIS · flight tracking · aircraft tracker ·
 vuelos de deportación · aviones de ICE · inmigración · control migratorio ·
 Guardia Costera · adsb.fi · adsb.lol · aisstream.io · EnforcementAircraft ·
-EnforcementVessels · FAA registry · ADS-B Radar · geo_location · map card ·
+EnforcementVessels · FAA registry · ADS-B Radar · Planespotters.net ·
+aircraft photos · Wikidata · Wikimedia Commons · geo_location · map card ·
 Lovelace · HACS · Marketplace · Live Track · LiveTrack ·
 StrausbergAutomationWorks
 
