@@ -6,6 +6,8 @@ Identity is PERMANENT: the domain is fixed at first install and no rename recove
 from __future__ import annotations
 
 DOMAIN = "live_track_salt"
+# Where the map card asks for an aircraft's photo (06_MAP_CONTRACT.md D4i; web.SaltPhotoView).
+PHOTO_URL_BASE = "/api/live_track_salt/photo"
 
 # ! THE TERMS REQUIRE THIS. adsb.fi: "You must cite adsb.fi and include a link to our home page"
 # (05_SHARED_LESSONS.md B16a). The EnforcementAircraft list is ODbL v1.0. adsb.lol's data is ODbL 1.0, and an

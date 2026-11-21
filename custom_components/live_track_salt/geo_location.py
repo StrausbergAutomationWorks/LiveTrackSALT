@@ -18,8 +18,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from saw_livetrack import aircraft_photos as _photos
+from saw_livetrack import vessel_photos as _vphotos
+
 from .const import (
-    AIS_ATTRIBUTION, DOMAIN, FEED_ATTRIBUTION, LIST_ATTRIBUTION, LOL_ATTRIBUTION, VESSEL_LIST_ATTRIBUTION,
+    AIS_ATTRIBUTION, DOMAIN, FEED_ATTRIBUTION, LIST_ATTRIBUTION, LOL_ATTRIBUTION, PHOTO_URL_BASE,
+    VESSEL_LIST_ATTRIBUTION,
 )
 from .coordinator import EnforcementCoordinator
 
@@ -92,6 +96,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry,
 
 class EnforcementAircraft(GeolocationEvent):
     _attr_should_poll = False
+    # D4i: where the map card asks for a Planespotters photo. The same on every write; kept out of the
+    # recorder.
+    _unrecorded_attributes = frozenset({"marker_photo_lookup"})
     _attr_unit_of_measurement = "km"
     _attr_source = DOMAIN
 
@@ -143,7 +150,13 @@ class EnforcementAircraft(GeolocationEvent):
         rec = self._rec()
         if not rec:
             return {}
-        return {k: rec[k] for k in _PASSTHROUGH if k in rec}
+        attrs = {k: rec[k] for k in _PASSTHROUGH if k in rec}
+        # D4i: a photo looked up only when a viewer hovers this aircraft, through our own signed-in view
+        # (web.SaltPhotoView); none for a TIS-B track or a Privacy ICAO Address (aircraft_photos.lookup_path).
+        path = _photos.lookup_path(PHOTO_URL_BASE, self._identity, rec.get("identity_hidden"))
+        if path:
+            attrs["marker_photo_lookup"] = path
+        return attrs
 
     async def async_added_to_hass(self) -> None:
         self.async_on_remove(self._coordinator.async_add_listener(self.async_write_ha_state))
@@ -152,6 +165,8 @@ class EnforcementAircraft(GeolocationEvent):
 class EnforcementVessel(GeolocationEvent):
     """A vessel on the EnforcementVessels list, inside a theatre (vessels.py). No unique_id, as the aircraft."""
     _attr_should_poll = False
+    # D4g: the photo, kept out of the recorder.
+    _unrecorded_attributes = frozenset({"marker_photo"})
     _attr_unit_of_measurement = "km"
     _attr_source = DOMAIN
 
@@ -200,7 +215,27 @@ class EnforcementVessel(GeolocationEvent):
         rec = self._rec()
         if not rec:
             return {}
-        return {k: rec[k] for k in _VESSEL_PASSTHROUGH if k in rec}
+        attrs = {k: rec[k] for k in _VESSEL_PASSTHROUGH if k in rec}
+        # D4g: a photo from Wikidata and Wikimedia Commons, by IMO and, when that finds nothing, by MMSI
+        # (saw_livetrack.vessel_photos, one book per instance, started in __init__; 2026-11-21).
+        book = self.hass.data.get(_vphotos.STORE_KEY) if self.hass is not None else None
+        if book is not None:
+            photo = book.photo(rec.get("imo"), self._mmsi, self._photo_arrived)
+            if photo:
+                attrs["marker_photo"] = photo
+        return attrs
+
+    @callback
+    def _photo_arrived(self) -> None:
+        """The book answered for this vessel: write its state now, not at the next fix."""
+        if self.hass is not None and self._rec() is not None:
+            self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
         self.async_on_remove(self._coordinator.async_add_listener(self.async_write_ha_state))
+
+    async def async_will_remove_from_hass(self) -> None:
+        """A photo still being looked up no longer has anyone to tell."""
+        book = self.hass.data.get(_vphotos.STORE_KEY) if self.hass is not None else None
+        if book is not None:
+            book.forget_waiter(self._photo_arrived)

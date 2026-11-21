@@ -9,6 +9,7 @@ starts first builds them and Live Track Aircraft, when installed, finds the same
 """
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from pathlib import Path
 
@@ -22,12 +23,14 @@ from saw_livetrack import adsb_poll as ap
 from saw_livetrack import enforcement_list as el
 from saw_livetrack import enforcement_vessels as ev
 from saw_livetrack import faa_registry as fr
+from saw_livetrack import vessel_photos as vp
 
 from .const import CONSUMER, DOMAIN
 from .coordinator import EnforcementCoordinator
 from .shared_map_card import async_offer_map_card, async_withdraw_map_card
 from .web import register as register_views
 
+_LOGGER = logging.getLogger(__name__)
 HERE = Path(__file__).parent
 PLATFORMS: list[Platform] = [Platform.GEO_LOCATION, Platform.SENSOR]
 # The reader holds a good check for 6 h and a failed one for 15 min; asked every hour.
@@ -67,6 +70,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     vessel_reader = ev.shared_list(hass.data, hass.config.path(".storage", ev.CACHE_NAME))
     if first_vessels:
         await hass.async_add_executor_job(vessel_reader.load_cache)
+    # ! VESSEL PHOTOS (06_MAP_CONTRACT.md D4g; 2026-11-21): Wikidata and Commons by IMO, else MMSI, one book
+    # per instance (saw_livetrack.vessel_photos), shared with Live Track Ships when it is on the same library.
+    # Never blocks setup: a failure leaves the map without vessel photos.
+    try:
+        await vp.shared(hass.data, hass.config.path(".storage"), hass.async_add_executor_job,
+                        lambda coro: hass.async_create_background_task(coro, "saw_vessel_photo_book"),
+                        async_get_clientsession(hass))
+    except Exception:  # noqa: BLE001
+        _LOGGER.warning("Vessel photos not started", exc_info=True)
     coordinator = EnforcementCoordinator(hass, entry, poll, reader, registry, vessel_reader)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 

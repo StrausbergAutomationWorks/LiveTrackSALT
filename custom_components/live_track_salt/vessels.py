@@ -122,6 +122,11 @@ class VesselTracker:
         }
         if obs.name:
             rec["vessel_name"] = obs.name
+        # The IMO the vessel broadcasts, if any: its photo is looked up by IMO first, then by MMSI
+        # (geo_location.EnforcementVessel, saw_livetrack.vessel_photos; 2026-11-21). Not published.
+        imo = getattr(obs, "imo", None)
+        if isinstance(imo, int) and not isinstance(imo, bool) and 1000000 <= imo <= 9999999:
+            rec["imo"] = str(imo)
         # ! THE LOOK OF A LISTED VESSEL IS THE LIBRARY'S (saw-livetrack 0.2.21, saw_livetrack.enforcement_vessels; Live
         # Track Ships draws by the same rules): status, agency, entry, hull and list name, and the hover's first line
         # (06_MAP_CONTRACT.md D4b rule 14: "USCGC Benjamin Bottoms (WPC 1132) · USCG"), the list's name else what the
