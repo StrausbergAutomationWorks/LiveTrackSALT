@@ -21,7 +21,7 @@ work where that work happens.
 > of water, today, and we are adding more data sources. Is yours missing?
 > [Suggest it](#help-it-grow), or add it yourself: we will help you do it.
 
-**Status: 0.1.3, released.** Added to the Marketplace by link
+**Status: 0.1.4, released.** Added to the Marketplace by link
 ([below](#install-it-step-by-step)); it is not in the Marketplace's catalog
 yet.
 
@@ -372,9 +372,14 @@ Deleting the Live Track SALT entry hands the row to another Live Track module,
 or removes it when none is left. If the integration's files are removed while
 its entry is still set up, and no other Live Track module is installed,
 remove the card's row yourself in **Settings → Dashboards → Resources**. To
-install the card by hand instead, follow the card's README; the row of a copy
-you installed by hand under `/local/` is pointed at an integration's copy only
-when that copy is a newer release. Any other map card that shows
+install the card by hand instead, follow the card's README. A row you made
+yourself, for a copy under `/local/` or at any other address, is never changed
+or removed. While it loads the card, every Live Track module leaves the card to
+it, even when a module carries a newer release, and nothing in **Repairs** says
+so. To go back to the module's copy, remove your row in
+**Settings → Dashboards → Resources** and restart Home Assistant. If you delete
+your copy's file, remove its row too: while a row whose file is gone stays, the
+module adds no row of its own. Any other map card that shows
 `geo_location` entities shows the aircraft and vessels too, as plain markers.
 
 ---

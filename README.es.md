@@ -24,7 +24,7 @@ migratorio, allí donde se hace ese trabajo.
 > [Sugiérelo](#ayúdanos-a-hacerlo-crecer), o añádelo tú mismo: te ayudaremos a
 > hacerlo.
 
-**Estado: 0.1.3, publicada.** Añadido al Marketplace por su enlace
+**Estado: 0.1.4, publicada.** Añadido al Marketplace por su enlace
 ([abajo](#instalarlo-paso-a-paso)); todavía no está en el catálogo del
 Marketplace.
 
@@ -399,9 +399,15 @@ Track, o se quita si no queda ninguno. Si se borran los archivos de la
 integración mientras su entrada sigue configurada, y no hay instalado ningún
 otro módulo de Live Track, quita tú mismo la fila de la tarjeta en
 **Configuración → Paneles de control → Recursos**. Para instalar la tarjeta a
-mano, sigue el README de la tarjeta; la fila de una copia que hayas instalado a
-mano en `/local/` solo se apunta a la copia de una integración cuando esa copia
-es una versión más nueva. Cualquier otra tarjeta de mapa que muestre entidades
+mano, sigue el README de la tarjeta. Una fila que hayas creado tú, para una
+copia en `/local/` o en cualquier otra dirección, nunca se cambia ni se elimina.
+Mientras cargue la tarjeta, todos los módulos Live Track le dejan la tarjeta,
+incluso cuando un módulo trae una versión más nueva, y nada en
+**Reparaciones** lo indica. Para volver a la copia del módulo, elimina tu fila
+en **Configuración → Paneles de control → Recursos** y reinicia Home Assistant.
+Si borras el archivo de tu copia, elimina también su fila: mientras quede una
+fila cuyo archivo ya no existe, el módulo no añade ninguna fila propia.
+Cualquier otra tarjeta de mapa que muestre entidades
 `geo_location` muestra también los aviones y los buques, como marcadores
 simples.
 
