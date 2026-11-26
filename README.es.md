@@ -159,9 +159,6 @@ Todo es gratuito y de código abierto. Nada se reserva para patrocinadores.
 * **El Marketplace** (HACS) en tu Home Assistant, para instalarlo y
   actualizarlo de la forma fácil. Sin él puedes copiar los archivos a mano.
 * **Acceso a Internet** para Home Assistant: todo viene de fuentes públicas.
-* **Opcional: auto-entities** desde el Marketplace, para poner los marcadores
-  en el mapa (ver
-  [Poner el mapa en un panel de control](#poner-el-mapa-en-un-panel-de-control)).
 * Nada que pagar y ninguna cuenta necesaria para los aviones. Las dos claves
   gratuitas de arriba son opcionales.
 * Home Assistant instala por sí mismo el paquete de Python que necesita
@@ -320,32 +317,6 @@ Track SALT**: nada que descargar, nada que copiar, ningún recurso que añadir.
    luego **Añadir tarjeta**.
 2. Baja hasta el final y elige **Manual**.
 3. Pega esto, y elige **Guardar**:
-
-```yaml
-type: custom:auto-entities
-card:
-  type: custom:live-track-map-card
-filter:
-  include:
-    - domain: geo_location
-      attributes:
-        source: live_track_salt
-      options:
-        display: attribute
-        attribute: marker_label
-        position_transition: auto
-  exclude:
-    - state: unavailable
-```
-
-Esta forma necesita
-[auto-entities](https://github.com/thomasloven/lovelace-auto-entities) desde
-el Marketplace. Con otros módulos de Live Track instalados, añade un filtro
-`- domain: geo_location` más por cada una de sus fuentes
-(`live_track_aircraft`, `live_track_ships` y así sucesivamente).
-
-**Sin auto-entities:** LiveTrackMapCard puede elegir por sí misma qué muestra,
-con `entity_filter`. Pega esto en su lugar; no hace falta instalar nada más:
 
 ```yaml
 type: custom:live-track-map-card
