@@ -24,7 +24,7 @@ migratorio, allí donde se hace ese trabajo.
 > [Sugiérelo](#ayúdanos-a-hacerlo-crecer), o añádelo tú mismo: te ayudaremos a
 > hacerlo.
 
-**Estado: 0.1.4, publicada.** Añadido al Marketplace por su enlace
+**Estado: 0.1.5, publicada.** Añadido al Marketplace por su enlace
 ([abajo](#instalarlo-paso-a-paso)); todavía no está en el catálogo del
 Marketplace.
 
