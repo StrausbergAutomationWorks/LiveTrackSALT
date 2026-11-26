@@ -133,6 +133,7 @@ so installing another one adds no requests to a source another already reads.
 | [Live Track Intercity Rail](https://github.com/StrausbergAutomationWorks/LiveTrackIntercityRail) | intercity and long-distance trains in North America, Europe and Australia | released |
 | **Live Track SALT** | immigration and federal law-enforcement aircraft and vessels, from public lists (this module) | released |
 | [Live Track Weather](https://github.com/StrausbergAutomationWorks/LiveTrackWeather) | weather, storms and natural hazards | released |
+| [Live Track Internet](https://github.com/StrausbergAutomationWorks/LiveTrackInternet) | internet outages, submarine cables and terrestrial links | released |
 | Live Track Stations | departure boards and "time to leave" alerts for every station | planned |
 | Live Track Satellites | satellites passing overhead | planned |
 | Live Track Freight Trains | freight and work trains where railways publish them | planned |
@@ -166,11 +167,11 @@ Everything is free and open source. Nothing is held back for sponsors.
 Live Track SALT is not in the Marketplace's catalog yet. Add it by its link:
 
 1. In Home Assistant, open **Settings → Marketplace** (HACS).
-2. Choose **Add from link** (or the three-dot menu → **Custom repositories**).
-3. Enter `StrausbergAutomationWorks/LiveTrackSALT`. If asked for the type,
-   choose **Integration**.
-4. Find **Live Track SALT** in the list and choose **Download** or
-   **Install**.
+2. Choose the **Add from link** tab.
+3. Under **GitHub link**, enter
+   `https://github.com/StrausbergAutomationWorks/LiveTrackSALT`
+   and, if asked for the **Type**, choose **Integration**.
+4. Find **Live Track SALT** in the list and choose **Install**.
 5. **Restart Home Assistant**: **Settings → System → Repairs** offers the
    restart, or use **Settings → System → Restart Home Assistant**.
 
