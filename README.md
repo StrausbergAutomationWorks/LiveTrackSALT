@@ -21,9 +21,8 @@ work where that work happens.
 > of water, today, and we are adding more data sources. Is yours missing?
 > [Suggest it](#help-it-grow), or add it yourself: we will help you do it.
 
-**Status: 0.1.5, released.** Added to the Marketplace by link
-([below](#install-it-step-by-step)); it is not in the Marketplace's catalog
-yet.
+**Status: 0.1.6, released.** In the Marketplace's catalog ([install it
+below](#install-it-step-by-step)).
 
 Original work by StrausbergAutomationWorks. Not affiliated with, or endorsed
 by, adsb.fi, adsb.lol, aisstream.io, the Federal Aviation Administration
@@ -164,16 +163,16 @@ Everything is free and open source. Nothing is held back for sponsors.
 
 ### From the Marketplace (recommended)
 
-Live Track SALT is not in the Marketplace's catalog yet. Add it by its link:
-
 1. In Home Assistant, open **Settings → Marketplace** (HACS).
-2. Choose the **Add from link** tab.
-3. Under **GitHub link**, enter
-   `https://github.com/StrausbergAutomationWorks/LiveTrackSALT`
-   and, if asked for the **Type**, choose **Integration**.
-4. Find **Live Track SALT** in the list and choose **Install**.
-5. **Restart Home Assistant**: **Settings → System → Repairs** offers the
+2. Search for **Live Track SALT** and open it.
+3. Choose **Download** (or **Install**).
+4. **Restart Home Assistant**: **Settings → System → Repairs** offers the
    restart, or use **Settings → System → Restart Home Assistant**.
+
+If the search doesn't find it, add it by its link: choose **Add from link** (or
+the three-dot menu → **Custom repositories**), enter
+`StrausbergAutomationWorks/LiveTrackSALT`, choose **Integration** if asked for the
+type, then carry on from step 3.
 
 The Marketplace then offers each new release as an update.
 
